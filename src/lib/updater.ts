@@ -1,9 +1,8 @@
 import { getVersion } from "@tauri-apps/api/app";
 
-// 可选导入：在未注册插件或非 Tauri 环境下，调用时会抛错，外层需做兜底
-// 我们按需加载并在运行时捕获错误，避免构建期类型问题
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import type { Update } from "@tauri-apps/plugin-updater";
+const RELEASES_API_URL =
+  "https://api.github.com/repos/kongkongyo/cc-switch/releases?per_page=10";
+const RELEASES_PAGE_URL = "https://github.com/kongkongyo/cc-switch/releases";
 
 export type UpdateChannel = "stable" | "beta";
 
@@ -22,6 +21,7 @@ export interface UpdateInfo {
   availableVersion: string;
   notes?: string;
   pubDate?: string;
+  releaseUrl: string;
 }
 
 export interface UpdateProgressEvent {
@@ -34,11 +34,7 @@ export interface UpdateHandle {
   version: string;
   notes?: string;
   date?: string;
-  downloadAndInstall: (
-    onProgress?: (e: UpdateProgressEvent) => void,
-  ) => Promise<void>;
-  download?: () => Promise<void>;
-  install?: () => Promise<void>;
+  releaseUrl: string;
 }
 
 export interface CheckOptions {
@@ -46,40 +42,99 @@ export interface CheckOptions {
   channel?: UpdateChannel;
 }
 
-function mapUpdateHandle(raw: Update): UpdateHandle {
-  return {
-    version: (raw as any).version ?? "",
-    notes: (raw as any).notes,
-    date: (raw as any).date,
-    async downloadAndInstall(onProgress?: (e: UpdateProgressEvent) => void) {
-      await (raw as any).downloadAndInstall((evt: any) => {
-        if (!onProgress) return;
-        const mapped: UpdateProgressEvent = {
-          event: evt?.event,
-        };
-        if (evt?.event === "Started") {
-          mapped.total = evt?.data?.contentLength ?? 0;
-          mapped.downloaded = 0;
-        } else if (evt?.event === "Progress") {
-          mapped.downloaded = evt?.data?.chunkLength ?? 0; // 累积由调用方完成
-        }
-        onProgress(mapped);
-      });
-    },
-    // 透传可选 API（若插件版本支持）
-    download: (raw as any).download
-      ? async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          await (raw as any).download();
-        }
-      : undefined,
-    install: (raw as any).install
-      ? async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          await (raw as any).install();
-        }
-      : undefined,
-  };
+interface GitHubRelease {
+  tag_name?: string;
+  body?: string | null;
+  published_at?: string | null;
+  html_url?: string;
+  draft?: boolean;
+  prerelease?: boolean;
+}
+
+function normalizeVersion(version: string): string {
+  return version.trim().replace(/^v/i, "");
+}
+
+function parseCore(version: string): number[] {
+  return normalizeVersion(version)
+    .split("-", 1)[0]
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+}
+
+function parseSuffix(version: string): Array<number | string> {
+  const normalized = normalizeVersion(version);
+  const dashIndex = normalized.indexOf("-");
+  if (dashIndex === -1) return [];
+
+  const suffix = normalized.slice(dashIndex + 1);
+  return (suffix.match(/[A-Za-z]+|\d+/g) ?? []).map((part) => {
+    const numeric = Number.parseInt(part, 10);
+    return Number.isNaN(numeric) ? part.toLowerCase() : numeric;
+  });
+}
+
+function compareToken(a: number | string, b: number | string): number {
+  if (typeof a === "number" && typeof b === "number") {
+    return a - b;
+  }
+  if (typeof a === "number") return -1;
+  if (typeof b === "number") return 1;
+  return a.localeCompare(b);
+}
+
+function compareVersion(a: string, b: string): number {
+  const coreA = parseCore(a);
+  const coreB = parseCore(b);
+  const coreLength = Math.max(coreA.length, coreB.length);
+
+  for (let i = 0; i < coreLength; i += 1) {
+    const diff = (coreA[i] ?? 0) - (coreB[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+
+  const suffixA = parseSuffix(a);
+  const suffixB = parseSuffix(b);
+
+  if (suffixA.length === 0 && suffixB.length === 0) return 0;
+  if (suffixA.length === 0) return 1;
+  if (suffixB.length === 0) return -1;
+
+  const suffixLength = Math.max(suffixA.length, suffixB.length);
+  for (let i = 0; i < suffixLength; i += 1) {
+    if (i >= suffixA.length) return -1;
+    if (i >= suffixB.length) return 1;
+    const diff = compareToken(suffixA[i], suffixB[i]);
+    if (diff !== 0) return diff;
+  }
+
+  return 0;
+}
+
+async function fetchLatestRelease(timeout: number): Promise<GitHubRelease | null> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(RELEASES_API_URL, {
+      method: "GET",
+      headers: {
+        Accept: "application/vnd.github+json",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub releases request failed: ${response.status}`);
+    }
+
+    const releases = (await response.json()) as GitHubRelease[];
+    return (
+      releases.find((release) => !release.draft && release.tag_name) ?? null
+    );
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export async function getCurrentVersion(): Promise<string> {
@@ -96,31 +151,40 @@ export async function checkForUpdate(
   | { status: "up-to-date" }
   | { status: "available"; info: UpdateInfo; update: UpdateHandle }
 > {
-  // 动态引入，避免在未安装插件时导致打包期问题
-  const { check } = await import("@tauri-apps/plugin-updater");
-
   const currentVersion = await getCurrentVersion();
-  const update = await check({ timeout: opts.timeout ?? 30000 } as any);
+  const release = await fetchLatestRelease(opts.timeout ?? 30000);
 
-  if (!update) {
+  if (!release?.tag_name) {
     return { status: "up-to-date" };
   }
 
-  const mapped = mapUpdateHandle(update);
+  const availableVersion = normalizeVersion(release.tag_name);
+  if (
+    !currentVersion ||
+    compareVersion(availableVersion, currentVersion) <= 0
+  ) {
+    return { status: "up-to-date" };
+  }
+
+  const releaseUrl = release.html_url || `${RELEASES_PAGE_URL}/tag/${release.tag_name}`;
   const info: UpdateInfo = {
     currentVersion,
-    availableVersion: mapped.version,
-    notes: mapped.notes,
-    pubDate: mapped.date,
+    availableVersion,
+    notes: release.body ?? undefined,
+    pubDate: release.published_at ?? undefined,
+    releaseUrl,
   };
 
-  return { status: "available", info, update: mapped };
+  const update: UpdateHandle = {
+    version: availableVersion,
+    notes: info.notes,
+    date: info.pubDate,
+    releaseUrl,
+  };
+
+  return { status: "available", info, update };
 }
 
 export async function relaunchApp(): Promise<void> {
-  const { relaunch } = await import("@tauri-apps/plugin-process");
-  await relaunch();
+  return Promise.resolve();
 }
-
-// 旧的聚合更新流程已由调用方直接使用 updateHandle 取代
-// 如需单函数封装，可在需要时基于 checkForUpdate + updateHandle 复合调用
