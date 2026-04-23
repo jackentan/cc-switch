@@ -10,6 +10,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type CSSProperties,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -92,11 +93,18 @@ export function ProviderList({
   onSetAsDefault,
 }: ProviderListProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { checkProvider, isChecking } = useStreamCheck(appId);
   const { sortedProviders, sensors, handleDragEnd } = useDragSort(
     providers,
     appId,
   );
+  const [isSortMutating, setIsSortMutating] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    providerId: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const { data: opencodeLiveIds } = useQuery({
     queryKey: ["opencodeLiveProviderIds"],
@@ -232,7 +240,6 @@ export function ProviderList({
   };
 
   // Import current live config as default provider
-  const queryClient = useQueryClient();
   const importMutation = useMutation({
     mutationFn: async (): Promise<boolean> => {
       if (appId === "opencode") {
@@ -290,6 +297,34 @@ export function ProviderList({
     }
   }, [isSearchOpen]);
 
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const handleWindowPointerDown = () => closeContextMenu();
+    const handleWindowResize = () => closeContextMenu();
+    const handleWindowScroll = () => closeContextMenu();
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeContextMenu();
+      }
+    };
+
+    window.addEventListener("pointerdown", handleWindowPointerDown);
+    window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("scroll", handleWindowScroll, true);
+    window.addEventListener("keydown", handleWindowKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handleWindowPointerDown);
+      window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("scroll", handleWindowScroll, true);
+      window.removeEventListener("keydown", handleWindowKeyDown);
+    };
+  }, [closeContextMenu, contextMenu]);
+
   const filteredProviders = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     if (!keyword) return sortedProviders;
@@ -300,6 +335,106 @@ export function ProviderList({
       );
     });
   }, [searchTerm, sortedProviders]);
+
+  const applyQuickSort = useCallback(
+    async (reordered: Provider[]) => {
+      const updates = reordered.map((item, index) => ({
+        id: item.id,
+        sortIndex: index,
+      }));
+
+      try {
+        setIsSortMutating(true);
+        await providersApi.updateSortOrder(updates, appId);
+        await queryClient.invalidateQueries({
+          queryKey: ["providers", appId],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["failoverQueue", appId],
+        });
+        try {
+          await providersApi.updateTrayMenu();
+        } catch (trayError) {
+          console.error("Failed to update tray menu after quick sort", trayError);
+        }
+        toast.success(
+          t("provider.sortUpdated", {
+            defaultValue: "排序已更新",
+          }),
+          { closeButton: true },
+        );
+      } catch (error) {
+        console.error("Failed to quick sort providers", error);
+        toast.error(
+          t("provider.sortUpdateFailed", {
+            defaultValue: "排序更新失败",
+          }),
+        );
+      } finally {
+        setIsSortMutating(false);
+      }
+    },
+    [appId, queryClient, t],
+  );
+
+  const moveProviderToTopQuick = useCallback(
+    async (providerId: string) => {
+      if (isSortMutating) return;
+      const list = [...sortedProviders];
+      const currentIndex = list.findIndex((item) => item.id === providerId);
+      if (currentIndex < 0) return;
+
+      if (currentIndex === 0) {
+        toast.info(
+          t("provider.quickMoveAlreadyTop", {
+            defaultValue: "该供应商已在顶部",
+          }),
+        );
+        return;
+      }
+
+      const [item] = list.splice(currentIndex, 1);
+      list.unshift(item);
+      await applyQuickSort(list);
+    },
+    [applyQuickSort, isSortMutating, sortedProviders, t],
+  );
+
+  const moveProviderToBottomQuick = useCallback(
+    async (providerId: string) => {
+      if (isSortMutating) return;
+      const list = [...sortedProviders];
+      const currentIndex = list.findIndex((item) => item.id === providerId);
+      if (currentIndex < 0) return;
+
+      const targetIndex = list.length - 1;
+      if (currentIndex === targetIndex) {
+        toast.info(
+          t("provider.quickMoveAlreadyBottom", {
+            defaultValue: "该供应商已在底部",
+          }),
+        );
+        return;
+      }
+
+      const [item] = list.splice(currentIndex, 1);
+      list.push(item);
+      await applyQuickSort(list);
+    },
+    [applyQuickSort, isSortMutating, sortedProviders, t],
+  );
+
+  const handleProviderContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>, providerId: string) => {
+      event.preventDefault();
+      setContextMenu({
+        providerId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [],
+  );
 
   if (isLoading) {
     return (
@@ -390,6 +525,9 @@ export function ProviderList({
                 onSetAsDefault={
                   onSetAsDefault ? () => onSetAsDefault(provider) : undefined
                 }
+                onContextMenu={(event) =>
+                  handleProviderContextMenu(event, provider.id)
+                }
               />
             );
           })}
@@ -474,6 +612,42 @@ export function ProviderList({
         renderProviderList()
       )}
 
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-md"
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 156),
+            top: Math.min(contextMenu.y, window.innerHeight - 96),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+            onClick={() => {
+              void moveProviderToTopQuick(contextMenu.providerId);
+              closeContextMenu();
+            }}
+          >
+            {t("provider.quickMoveTop", {
+              defaultValue: "一键置顶",
+            })}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+            onClick={() => {
+              void moveProviderToBottomQuick(contextMenu.providerId);
+              closeContextMenu();
+            }}
+          >
+            {t("provider.quickMoveBottom", {
+              defaultValue: "一键置底",
+            })}
+          </button>
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={showStreamCheckConfirm}
         variant="info"
@@ -519,6 +693,7 @@ interface SortableProviderCardProps {
   // OpenClaw: default model
   isDefaultModel?: boolean;
   onSetAsDefault?: () => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
 }
 
 function SortableProviderCard({
@@ -549,6 +724,7 @@ function SortableProviderCard({
   activeProviderId,
   isDefaultModel,
   onSetAsDefault,
+  onContextMenu,
 }: SortableProviderCardProps) {
   const {
     setNodeRef,
@@ -565,7 +741,7 @@ function SortableProviderCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} onContextMenu={onContextMenu}>
       <ProviderCard
         provider={provider}
         isCurrent={isCurrent}
