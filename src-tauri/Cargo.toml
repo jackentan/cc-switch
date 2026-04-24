@@ -39,6 +39,7 @@ dirs = "5.0"
 toml = "0.8"
 toml_edit = "0.22"
 reqwest = { version = "0.12", features = ["rustls-tls", "json", "stream", "socks"] }
+rand = "0.9"
 arboard = "3.6"
 flate2 = "1"
 brotli = "7"

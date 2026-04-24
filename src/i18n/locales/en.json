@@ -2223,6 +2223,7 @@
     "maxRetries": "Max Retries",
     "degradedThreshold": "Degraded Threshold (ms)",
     "testPrompt": "Test Prompt",
+    "testPromptHint": "One prompt per line, randomly chosen during each check",
     "operational": "{{providerName}} is operational ({{responseTimeMs}}ms)",
     "degraded": "{{providerName}} is slow ({{responseTimeMs}}ms)",
     "failed": "{{providerName}} check failed: {{message}}",

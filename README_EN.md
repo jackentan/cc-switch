@@ -1,0 +1,173 @@
+<div align="center">
+
+# CC Switch (Fork)
+
+This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch) and is currently synced to upstream `v3.14.1`.
+
+**This is a personal-use fork focused on practicality.** Some added or modified features have not been fully tested, so **bugs or incompatibilities with upstream may exist**. If you want the safest option, use the [official version](https://github.com/farion1231/cc-switch).
+
+[![Version](https://img.shields.io/badge/version-3.14.1--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
+[![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
+
+[中文](README.md) | English | [日本語](README_JA.md) | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
+
+</div>
+
+## Differences From Upstream
+
+| Feature | Official | This Fork |
+|---------|----------|-----------|
+| Provider card | Name only | Shows current model name after provider name |
+| Model picker | Mostly manual input | Searchable dropdown with match sorting and highlight |
+| After fetching models | Mainly fills choices | Can directly search fetched models |
+| New provider position | Added to the end | Inserted at position 2 |
+| Right-click menu | No pin-top / pin-bottom shortcut | Supports move to top / bottom |
+| Tray left click | Opens tray menu | Toggles main window show / hide |
+| Model test | Limited entry | Test button restored with advanced test settings |
+| Test prompts | Usually single prompt | Built-in pool of 18 prompts, randomly picks one per test, supports custom multi-line prompt pool |
+| Update flow | Upstream auto-update chain | Checks this repo's Releases and prompts manual update |
+| Release source | Upstream Releases | Independent releases for this fork |
+
+---
+
+## Main Features
+
+### Current Version: v3.14.1-fork.1
+
+- Supports **Claude Code, Codex, Gemini CLI, OpenCode, and OpenClaw**
+- Unified provider import, switching, sorting, duplication, import/export
+- Unified MCP / Prompts / Skills / Sessions management
+- Local proxy, failover, health checks, and format conversion
+- WebDAV and custom config-directory sync support
+
+### Fork Enhancements
+
+- Current model name shown directly on provider cards
+- Search models immediately after fetching model list
+- New providers inserted in second position by default
+- Right-click provider card to move it to top or bottom
+- Left-click tray icon toggles main window visibility
+- Model testing improvements
+  - test entry restored
+  - advanced test settings kept
+  - built-in pool of 18 default test prompts
+  - one prompt is randomly selected for each test
+  - custom multi-line prompt pool supported
+- Manual update guidance
+  - checks this fork's Releases
+  - opens release page for manual update
+  - does not rely on Tauri auto-download updater
+
+## Screenshots
+
+|                  Main Interface                   |                  Add Provider                  |
+| :-----------------------------------------------: | :--------------------------------------------: |
+| ![Main Interface](assets/screenshots/main-en.png) | ![Add Provider](assets/screenshots/add-en.png) |
+
+## Download
+
+### System Requirements
+
+- **Windows**: Windows 10+
+- **macOS**: macOS 12 (Monterey)+
+- **Linux**: Ubuntu 22.04+ / Debian 11+ / Fedora 34+ and other mainstream distros
+
+### Release Assets
+
+This fork currently publishes:
+
+- **Windows**: `CC-Switch-v{version}-Windows-Portable.zip`
+- **macOS**: `CC-Switch-v{version}-macOS.zip`
+- **Linux**: `CC-Switch-v{version}-Linux-x86_64.deb`
+
+Download:
+
+- [Fork Releases](https://github.com/kongkongyo/cc-switch/releases)
+
+## Update Flow
+
+- The app checks this fork repository's Releases
+- When a new version is found, it prompts users to update manually from the release page
+- Tauri auto-download updater is not used
+
+## Quick Start
+
+1. Add a provider from presets or custom config
+2. Switch provider from the main window or tray
+3. Restart the target CLI when needed
+4. Add an official preset if you want to switch back to official login
+
+## Data Location
+
+- **Database**: `~/.cc-switch/cc-switch.db`
+- **Local settings**: `~/.cc-switch/settings.json`
+- **Backups**: `~/.cc-switch/backups/`
+- **Skills**: `~/.cc-switch/skills/`
+- **Skill backups**: `~/.cc-switch/skill-backups/`
+
+## Development
+
+### Requirements
+
+- Node.js 18+
+- pnpm 8+
+- Rust 1.85+
+- Tauri CLI 2.8+
+
+### Common Commands
+
+```bash
+pnpm install
+pnpm dev
+pnpm typecheck
+pnpm format
+pnpm format:check
+pnpm test:unit
+pnpm build
+pnpm tauri build --debug
+```
+
+### Rust
+
+```bash
+cd src-tauri
+cargo fmt
+cargo clippy
+cargo test
+cargo test --features test-hooks
+```
+
+## Tech Stack
+
+- **Frontend**: React 18, TypeScript, Vite, TailwindCSS, TanStack Query
+- **Backend**: Tauri 2, Rust, serde, tokio, thiserror
+- **Testing**: vitest, MSW, @testing-library/react
+
+## Project Structure
+
+```text
+├── src/                      # frontend
+├── src-tauri/                # Rust backend
+├── tests/                    # frontend tests
+└── assets/                   # screenshots and resources
+```
+
+## Contributing
+
+Issues and suggestions are welcome.
+
+Before opening a PR, please make sure:
+
+- `pnpm typecheck`
+- `pnpm format:check`
+- `pnpm test:unit`
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=farion1231/cc-switch&type=Date)](https://www.star-history.com/#farion1231/cc-switch&Date)
+
+## License
+
+MIT © Jason Young

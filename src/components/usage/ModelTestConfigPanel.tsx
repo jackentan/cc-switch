@@ -13,6 +13,25 @@ import {
   type StreamCheckConfig,
 } from "@/lib/api/model-test";
 
+const DEFAULT_TEST_PROMPT = `Does the Sun rise in the east?
+How many legs do insects have?
+How many centimeters are in a meter?
+In binary, how is decimal 5 written?
+What color do you get when you mix yellow and blue?
+Does the Moon orbit the Earth?
+What color do you get when you mix red and blue?
+How many minutes are in an hour?
+How many degrees are in a circle?
+In binary, how is decimal 3 written?
+Does water boil at 100°C at sea level?
+What number does the Roman numeral L represent?
+How many legs does a spider have?
+What color do you get when you mix black and white?
+Is Earth a planet in the Solar System?
+Do fish breathe with gills?
+Is Mars the fourth planet?
+What number does the Roman numeral V represent?`;
+
 export function ModelTestConfigPanel() {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +45,7 @@ export function ModelTestConfigPanel() {
     claudeModel: "claude-haiku-4-5-20251001",
     codexModel: "gpt-5.4@low",
     geminiModel: "gemini-3-flash-preview",
-    testPrompt: "Who are you?",
+    testPrompt: DEFAULT_TEST_PROMPT,
   });
 
   useEffect(() => {
@@ -45,7 +64,7 @@ export function ModelTestConfigPanel() {
         claudeModel: data.claudeModel,
         codexModel: data.codexModel,
         geminiModel: data.geminiModel,
-        testPrompt: data.testPrompt || "Who are you?",
+        testPrompt: data.testPrompt || DEFAULT_TEST_PROMPT,
       });
     } catch (e) {
       setError(String(e));
@@ -69,7 +88,7 @@ export function ModelTestConfigPanel() {
         claudeModel: config.claudeModel,
         codexModel: config.codexModel,
         geminiModel: config.geminiModel,
-        testPrompt: config.testPrompt || "Who are you?",
+        testPrompt: config.testPrompt || DEFAULT_TEST_PROMPT,
       };
       await saveStreamCheckConfig(parsed);
       toast.success(t("streamCheck.configSaved"), {
@@ -196,16 +215,25 @@ export function ModelTestConfigPanel() {
 
         {/* 检查提示词配置 */}
         <div className="space-y-2">
-          <Label htmlFor="testPrompt">{t("streamCheck.testPrompt")}</Label>
+          <div className="flex items-baseline gap-2">
+            <Label htmlFor="testPrompt">{t("streamCheck.testPrompt")}</Label>
+            <span className="text-xs text-muted-foreground">
+              {t("streamCheck.testPromptHint", {
+                defaultValue: "每行一条提示词，测试时随机选择",
+              })}
+            </span>
+          </div>
           <Textarea
             id="testPrompt"
             value={config.testPrompt}
             onChange={(e) =>
               setConfig({ ...config, testPrompt: e.target.value })
             }
-            placeholder="Who are you?"
-            rows={2}
-            className="min-h-[60px]"
+            placeholder={
+              "Does the Sun rise in the east?\nHow many legs do insects have?\n..."
+            }
+            rows={8}
+            className="min-h-[180px]"
           />
         </div>
       </div>

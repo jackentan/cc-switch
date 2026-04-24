@@ -2223,6 +2223,7 @@
     "maxRetries": "最大重试次数",
     "degradedThreshold": "降级阈值（毫秒）",
     "testPrompt": "检查提示词",
+    "testPromptHint": "每行一条提示词，测试时随机选择",
     "operational": "{{providerName}} 运行正常 ({{responseTimeMs}}ms)",
     "degraded": "{{providerName}} 响应较慢 ({{responseTimeMs}}ms)",
     "failed": "{{providerName}} 检查失败: {{message}}",

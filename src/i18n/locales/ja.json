@@ -2223,6 +2223,7 @@
     "maxRetries": "最大リトライ回数",
     "degradedThreshold": "劣化しきい値（ミリ秒）",
     "testPrompt": "テストプロンプト",
+    "testPromptHint": "1行ごとに1つのプロンプトとして扱い、チェック時にランダムで選択します",
     "operational": "{{providerName}} は正常に動作しています ({{responseTimeMs}}ms)",
     "degraded": "{{providerName}} の応答が遅いです ({{responseTimeMs}}ms)",
     "failed": "{{providerName}} のチェックに失敗しました: {{message}}",
