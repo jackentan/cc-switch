@@ -2,16 +2,16 @@
 
 # CC Switch (Fork)
 
-基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch)，当前 Fork 已同步至上游 `v3.14.1`。
+基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch)，当前 Fork 已同步至上游 `v3.16.0`。
 
 **个人自用修改版，主打能用就行。** 新增或修改的功能未经充分测试，**可能存在 bug 或与上游不兼容**，介意请使用[官方版](https://github.com/farion1231/cc-switch)。
 
-[![Version](https://img.shields.io/badge/version-3.14.1--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.16.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
-[中文首页](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | 中文 | [更新日志](CHANGELOG.md)
+[中文首页](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [Deutsch](README_DE.md) | 中文 | [更新日志](CHANGELOG.md)
 
 </div>
 
@@ -97,7 +97,7 @@ MiniMax M2.7 是 MiniMax 首个深度参与自我迭代的模型，可自主构�
 
 ## 功能特性
 
-### 当前版本：v3.14.1-fork.1 | [完整更新日志](CHANGELOG.md) | [发布说明](docs/release-notes/v3.14.1-zh.md)
+### 当前版本：v3.16.0-fork.1 | [完整更新日志](CHANGELOG.md) | [发布说明](docs/release-notes/v3.16.0-zh.md)
 
 **统一管理 5 个 AI CLI 工具**
 

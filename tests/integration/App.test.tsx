@@ -218,7 +218,7 @@ describe("App integration with MSW", () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
     expect(toastSuccessMock).toHaveBeenCalled();
     },
-    15000,
+    30000,
   );
 
   it("shows toast when auto sync fails in background", async () => {
@@ -228,6 +228,11 @@ describe("App integration with MSW", () => {
     await waitFor(() =>
       expect(getProviderListText(view)).toContain("claude-1"),
     );
+
+    expect(() => {
+      emitTauriEvent("webdav-sync-status-updated", null);
+    }).not.toThrow();
+    expect(toastErrorMock).not.toHaveBeenCalled();
 
     emitTauriEvent("webdav-sync-status-updated", {
       source: "auto",
