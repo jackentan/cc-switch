@@ -513,6 +513,7 @@ function ProviderFormFull({
     codexConfig,
     codexApiKey,
     codexBaseUrl,
+    codexModelName,
     codexCatalogModels,
     codexAuthError,
     setCodexAuth,
@@ -520,6 +521,7 @@ function ProviderFormFull({
     setCodexCatalogModels,
     handleCodexApiKeyChange,
     handleCodexBaseUrlChange,
+    handleCodexModelNameChange,
     handleCodexConfigChange: originalHandleCodexConfigChange,
     resetCodexConfig,
   } = useCodexConfigState({ initialData });
@@ -2032,6 +2034,9 @@ function ProviderFormFull({
               }
               autoSelect={endpointAutoSelect}
               onAutoSelectChange={setEndpointAutoSelect}
+              shouldShowModelField={true}
+              modelName={codexModelName}
+              onModelNameChange={handleCodexModelNameChange}
               apiFormat={localCodexApiFormat}
               onApiFormatChange={handleCodexApiFormatChange}
               codexChatReasoning={codexChatReasoning}

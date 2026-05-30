@@ -19,7 +19,12 @@ import {
   Trash2,
 } from "lucide-react";
 import EndpointSpeedTest from "./EndpointSpeedTest";
-import { ApiKeySection, EndpointField, ModelDropdown } from "./shared";
+import {
+  ApiKeySection,
+  EndpointField,
+  ModelDropdown,
+  ModelInputWithFetch,
+} from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -58,6 +63,11 @@ interface CodexFormFieldsProps {
   onCustomEndpointsChange?: (endpoints: string[]) => void;
   autoSelect: boolean;
   onAutoSelectChange: (checked: boolean) => void;
+
+  // Model Name
+  shouldShowModelField?: boolean;
+  modelName?: string;
+  onModelNameChange?: (model: string) => void;
 
   // API Format
   // Note: wire_api is always "responses" for Codex; apiFormat controls proxy-layer conversion
@@ -121,6 +131,9 @@ export function CodexFormFields({
   onCustomEndpointsChange,
   autoSelect,
   onAutoSelectChange,
+  shouldShowModelField = true,
+  modelName = "",
+  onModelNameChange,
   apiFormat,
   onApiFormatChange,
   codexChatReasoning = {},
@@ -319,6 +332,51 @@ export function CodexFormFields({
           onFullUrlChange={onFullUrlChange}
           onManageClick={() => onEndpointModalToggle(true)}
         />
+      )}
+
+      {/* Codex Model Name 输入框：非本地路由时直接写入 config.toml 的 model 字段 */}
+      {shouldShowModelField && !needsLocalRouting && onModelNameChange && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <FormLabel htmlFor="codexModelName">
+              {t("codexConfig.modelName", { defaultValue: "模型名称" })}
+            </FormLabel>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleFetchModels}
+              disabled={isFetchingModels}
+              className="h-7 gap-1"
+            >
+              {isFetchingModels ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {t("providerForm.fetchModels")}
+            </Button>
+          </div>
+          <ModelInputWithFetch
+            id="codexModelName"
+            value={modelName}
+            onChange={onModelNameChange}
+            placeholder={t("codexConfig.modelNamePlaceholder", {
+              defaultValue: "例如: gpt-5.5",
+            })}
+            fetchedModels={fetchedModels}
+            isLoading={isFetchingModels}
+          />
+          <p className="text-xs text-muted-foreground">
+            {modelName.trim()
+              ? t("codexConfig.modelNameHint", {
+                  defaultValue: "指定使用的模型，将自动更新到 config.toml 中",
+                })
+              : t("providerForm.modelHint", {
+                  defaultValue: "留空将使用供应商的默认模型",
+                })}
+          </p>
+        </div>
       )}
 
       {shouldShowSpeedTest && (

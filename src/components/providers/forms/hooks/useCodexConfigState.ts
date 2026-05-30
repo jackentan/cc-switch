@@ -2,7 +2,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   extractCodexBaseUrl,
   extractCodexExperimentalBearerToken,
+  extractCodexModelName,
   setCodexBaseUrl as setCodexBaseUrlInConfig,
+  setCodexModelName as setCodexModelNameInConfig,
   updateCodexExperimentalBearerToken,
 } from "@/utils/providerConfigUtils";
 import { normalizeTomlText } from "@/utils/textNormalization";
@@ -36,6 +38,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
   const [codexConfig, setCodexConfigState] = useState("");
   const [codexApiKey, setCodexApiKey] = useState("");
   const [codexBaseUrl, setCodexBaseUrl] = useState("");
+  const [codexModelName, setCodexModelName] = useState("");
   const [codexCatalogModels, setCodexCatalogModels] = useState<
     CodexCatalogModel[]
   >([]);
@@ -91,6 +94,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
       if (initialBaseUrl) {
         setCodexBaseUrl(initialBaseUrl);
       }
+      setCodexModelName(extractCodexModelName(configStr) || "");
 
       setCodexApiKey(pickCodexApiKey(auth, configStr));
     }
@@ -103,6 +107,10 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     }
     const extracted = extractCodexBaseUrl(codexConfig) || "";
     setCodexBaseUrl((prev) => (prev === extracted ? prev : extracted));
+    const extractedModel = extractCodexModelName(codexConfig) || "";
+    setCodexModelName((prev) =>
+      prev === extractedModel ? prev : extractedModel,
+    );
   }, [codexConfig]);
 
   // 获取 API Key（从 auth JSON）
@@ -198,6 +206,16 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     [setCodexConfig],
   );
 
+  // 处理 Codex Model 变化
+  const handleCodexModelNameChange = useCallback(
+    (model: string) => {
+      const trimmed = model.trim();
+      setCodexModelName(trimmed);
+      setCodexConfig((prev) => setCodexModelNameInConfig(prev, trimmed));
+    },
+    [setCodexConfig],
+  );
+
   // 处理 config 变化（同步 Base URL）
   const handleCodexConfigChange = useCallback(
     (value: string) => {
@@ -211,6 +229,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
           setCodexBaseUrl(extracted);
         }
       }
+      setCodexModelName(extractCodexModelName(normalized) || "");
     },
     [setCodexConfig, codexBaseUrl],
   );
@@ -229,6 +248,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
 
       const baseUrl = extractCodexBaseUrl(config);
       setCodexBaseUrl(baseUrl || "");
+      setCodexModelName(extractCodexModelName(config) || "");
 
       setCodexApiKey(pickCodexApiKey(auth, config));
     },
@@ -240,6 +260,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     codexConfig,
     codexApiKey,
     codexBaseUrl,
+    codexModelName,
     codexCatalogModels,
     codexAuthError,
     setCodexAuth,
@@ -247,6 +268,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     setCodexCatalogModels,
     handleCodexApiKeyChange,
     handleCodexBaseUrlChange,
+    handleCodexModelNameChange,
     handleCodexConfigChange,
     resetCodexConfig,
     getCodexAuthApiKey,
