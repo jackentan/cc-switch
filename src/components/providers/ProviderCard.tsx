@@ -100,30 +100,102 @@ function isOfficialProvider(provider: Provider, appId: AppId): boolean {
   return false;
 }
 
-const extractModelName = (
+type ModelBadgeInfo = {
+  label: string;
+  title: string;
+};
+
+const CLAUDE_ONE_M_MARKER = "[1m]";
+
+const stripClaudeOneMMarker = (model: string): string => {
+  const trimmedEnd = model.trimEnd();
+  if (!trimmedEnd.toLowerCase().endsWith(CLAUDE_ONE_M_MARKER)) {
+    return model.trim();
+  }
+  return trimmedEnd.slice(0, -CLAUDE_ONE_M_MARKER.length).trimEnd();
+};
+
+const envString = (env: Record<string, any> | undefined, key: string) => {
+  const value = env?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+};
+
+const extractClaudeModelBadge = (
+  env: Record<string, any> | undefined,
+): ModelBadgeInfo | null => {
+  const roleModels = [
+    {
+      role: "Opus",
+      model: envString(env, "ANTHROPIC_DEFAULT_OPUS_MODEL"),
+    },
+    {
+      role: "Sonnet",
+      model: envString(env, "ANTHROPIC_DEFAULT_SONNET_MODEL"),
+    },
+    {
+      role: "Haiku",
+      model: envString(env, "ANTHROPIC_DEFAULT_HAIKU_MODEL"),
+    },
+  ]
+    .map(({ role, model }) => ({
+      role,
+      model: model ? stripClaudeOneMMarker(model) : null,
+    }))
+    .filter(
+      (item): item is { role: string; model: string } => item.model !== null,
+    );
+
+  if (roleModels.length === 0) {
+    const fallbackModel = envString(env, "ANTHROPIC_MODEL");
+    if (!fallbackModel) return null;
+    const label = stripClaudeOneMMarker(fallbackModel);
+    return { label, title: label };
+  }
+
+  const title = roleModels
+    .map(({ role, model }) => `${role}: ${model}`)
+    .join(" / ");
+  const hasAllRoleModels = roleModels.length === 3;
+  const uniqueModels = new Set(roleModels.map(({ model }) => model));
+
+  if (hasAllRoleModels && uniqueModels.size === 1) {
+    const label = roleModels[0].model;
+    return { label, title };
+  }
+
+  const primary = roleModels[0];
+  return {
+    label: primary.model,
+    title,
+  };
+};
+
+const extractModelBadge = (
   provider: Provider,
   appId: AppId,
-): string | null => {
+): ModelBadgeInfo | null => {
   const config = provider.settingsConfig;
   if (!config || typeof config !== "object") return null;
 
   const env = (config as Record<string, any>)?.env;
 
   if (appId === "claude") {
-    const model = env?.ANTHROPIC_MODEL;
-    if (typeof model === "string" && model.trim()) return model.trim();
+    return extractClaudeModelBadge(env);
   }
 
   if (appId === "gemini") {
     const model = env?.GEMINI_MODEL;
-    if (typeof model === "string" && model.trim()) return model.trim();
+    if (typeof model === "string" && model.trim()) {
+      const label = model.trim();
+      return { label, title: label };
+    }
   }
 
   if (appId === "codex") {
     const toml = (config as Record<string, any>)?.config;
     if (typeof toml === "string") {
       const match = toml.match(/^model\s*=\s*"([^"]+)"/m);
-      if (match?.[1]) return match[1];
+      if (match?.[1]) return { label: match[1], title: match[1] };
     }
   }
 
@@ -206,8 +278,8 @@ export function ProviderCard({
     defaultValue: "未配置接口地址",
   });
 
-  const modelName = useMemo(() => {
-    return extractModelName(provider, appId);
+  const modelBadge = useMemo(() => {
+    return extractModelBadge(provider, appId);
   }, [provider, appId]);
 
   const displayUrl = useMemo(() => {
@@ -372,12 +444,14 @@ export function ProviderCard({
                 {provider.name}
               </h3>
 
-              {modelName && (
+              {modelBadge && (
                 <span
                   className="inline-flex items-center rounded bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground"
-                  title={modelName}
+                  title={modelBadge.title}
                 >
-                  <span className="truncate max-w-[200px]">{modelName}</span>
+                  <span className="truncate max-w-[200px]">
+                    {modelBadge.label}
+                  </span>
                 </span>
               )}
 
