@@ -2,39 +2,38 @@
 
 # CC Switch (Fork)
 
-This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch) and is currently synced to upstream `v3.14.1`.
+This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.0`, with this fork's personal changes kept. Later upstream `main` commits may not be synced yet.
 
 **This is a personal-use fork focused on practicality.** Some added or modified features have not been fully tested, so **bugs or incompatibilities with upstream may exist**. If you want the safest option, use the [official version](https://github.com/farion1231/cc-switch).
 
-[![Version](https://img.shields.io/badge/version-3.14.1--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.16.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
-[中文](README.md) | English | [日本語](README_JA.md) | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
+[中文](README.md) | English | [日本語](README_JA.md) | [Deutsch](README_DE.md) | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
 
 </div>
 
 ## Differences From Upstream
 
-| Feature | Official | This Fork |
-|---------|----------|-----------|
-| Provider card | Name only | Shows current model name after provider name |
-| Model picker | Mostly manual input | Searchable dropdown with match sorting and highlight |
-| After fetching models | Mainly fills choices | Can directly search fetched models |
-| New provider position | Added to the end | Inserted at position 2 |
-| Right-click menu | No pin-top / pin-bottom shortcut | Supports move to top / bottom |
-| Tray left click | Opens tray menu | Toggles main window show / hide |
-| Model test | Limited entry | Test button restored with advanced test settings |
-| Test prompts | Usually single prompt | Built-in pool of 18 prompts, randomly picks one per test, supports custom multi-line prompt pool |
-| Update flow | Upstream auto-update chain | Checks this repo's Releases and prompts manual update |
-| Release source | Upstream Releases | Independent releases for this fork |
+| Usage | Official | This Fork |
+|-------|----------|-----------|
+| Viewing current config | Provider cards mainly show the provider name | Shows the current model next to the provider name; Claude role models are shortened when possible |
+| Selecting models | Long model lists mostly rely on scrolling | After fetching models, you can search, browse by provider, and see the selected model highlighted |
+| Codex regular model | Model field is less visible in non-local-routing config | In non-local-routing config, you can type or fetch the model name and write it into Codex config |
+| New provider position | Added to the end | Inserted in second position when existing providers exist, making it easier to enable or reorder |
+| Provider ordering | Mostly drag-and-drop | Keeps drag-and-drop and adds right-click move to top / move to bottom |
+| Tray action | Left click tends to open the tray menu | Left-click tray icon shows / hides the main window |
+| Model test | Default prompt is relatively simple | Uses multiple lightweight prompts and randomly picks one per test; custom one-prompt-per-line input is supported |
+| Update flow | Uses upstream auto-update chain | Checks this fork's Releases, opens the release page, and lets the user download manually |
+| Release source | Official repo Releases | Installers are published in this fork's Releases |
 
 ---
 
 ## Main Features
 
-### Current Version: v3.14.1-fork.1
+### Current Version: v3.16.0-fork.1
 
 - Supports **Claude Code, Codex, Gemini CLI, OpenCode, and OpenClaw**
 - Unified provider import, switching, sorting, duplication, import/export

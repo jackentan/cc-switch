@@ -1,21 +1,35 @@
 <div align="center">
 
-# CC Switch
+# CC Switch (Fork)
 
-### Der All-in-One-Manager für Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw & Hermes Agent
+Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.0` und behält die persönlichen Änderungen dieses Forks bei. Spätere Commits aus upstream `main` sind möglicherweise noch nicht synchronisiert.
 
-[![Version](https://img.shields.io/github/v/release/farion1231/cc-switch?color=blue&label=version)](https://github.com/farion1231/cc-switch/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/farion1231/cc-switch/releases)
+**Dies ist ein persönlicher Fork mit Fokus auf praktische Nutzung.** Einige hinzugefügte oder geänderte Funktionen wurden nicht vollständig getestet, daher können **Fehler oder Inkompatibilitäten mit upstream** auftreten. Wenn Sie die sicherste Variante möchten, verwenden Sie die [offizielle Version](https://github.com/farion1231/cc-switch).
+
+[![Version](https://img.shields.io/badge/version-3.16.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
-[![Downloads](https://img.shields.io/github/downloads/farion1231/cc-switch/total)](https://github.com/farion1231/cc-switch/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
-<a href="https://trendshift.io/repositories/15372" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15372" alt="farion1231%2Fcc-switch | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-### 🌐 Die einzige offizielle Website: **[ccswitch.io](https://ccswitch.io)**
-
-[English](README.md) | [中文](README_ZH.md) | [日本語](README_JA.md) | Deutsch | [Changelog](CHANGELOG.md)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | Deutsch | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
 
 </div>
+
+## Unterschiede zum Upstream
+
+| Nutzung | Offizielle Version | Dieser Fork |
+|---------|--------------------|-------------|
+| Aktuelle Konfiguration ansehen | Provider-Karten zeigen hauptsächlich den Providernamen | Zeigt das aktuelle Modell neben dem Providernamen; Claude-Rollenmodelle werden nach Möglichkeit kurz dargestellt |
+| Modelle auswählen | Lange Modelllisten werden hauptsächlich per Scrollen durchsucht | Nach dem Abrufen der Modelle können Sie suchen, nach Provider gruppiert ansehen und das ausgewählte Modell erkennen |
+| Normales Codex-Modell | In Konfigurationen ohne lokales Routing ist das Modellfeld weniger sichtbar | Ohne lokales Routing können Sie den Modellnamen direkt eingeben oder abrufen und in die Codex-Konfiguration schreiben |
+| Neuer Provider | Wird am Ende hinzugefügt | Wird bei vorhandenen Providern an zweiter Stelle eingefügt, damit er schneller aktiviert oder sortiert werden kann |
+| Provider-Reihenfolge | Hauptsächlich per Drag-and-drop | Drag-and-drop bleibt erhalten, zusätzlich gibt es per Rechtsklick Verschieben nach oben / unten |
+| Tray-Bedienung | Linksklick öffnet eher das Tray-Menü | Linksklick auf das Tray-Symbol zeigt / versteckt das Hauptfenster |
+| Modelltest | Standard-Testprompt ist relativ einfach | Nutzt mehrere leichte Prompts und wählt pro Test zufällig einen aus; eigene Eingabe mit einem Prompt pro Zeile wird unterstützt |
+| Aktualisierung | Nutzt die automatische Update-Kette von upstream | Prüft die Releases dieses Forks, öffnet die Release-Seite und lässt den Nutzer manuell herunterladen |
+| Veröffentlichungsquelle | Releases des offiziellen Repos | Installer werden in den Releases dieses Forks veröffentlicht |
+
+---
 
 ## ❤️Sponsoren
 
