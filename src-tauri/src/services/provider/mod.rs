@@ -1575,18 +1575,18 @@ impl ProviderService {
 
         // OMO providers are switched through their own exclusive path.
         if matches!(app_type, AppType::OpenCode) && _provider.category.as_deref() == Some("omo") {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         // OMO Slim providers are switched through their own exclusive path.
         if matches!(app_type, AppType::OpenCode)
             && _provider.category.as_deref() == Some("omo-slim")
         {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         if matches!(app_type, AppType::ClaudeDesktop) {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         // Check if proxy takeover mode is active AND proxy server is actually running
@@ -1636,7 +1636,7 @@ impl ProviderService {
         }
 
         // Normal mode: full switch with Live config write
-        Self::switch_normal(state, app_type, id, &providers)
+        Self::switch_normal(state, app_type, id)
     }
 
     /// Normal switch flow (non-proxy mode)
@@ -1644,8 +1644,10 @@ impl ProviderService {
         state: &AppState,
         app_type: AppType,
         id: &str,
-        providers: &indexmap::IndexMap<String, Provider>,
     ) -> Result<SwitchResult, AppError> {
+        let _switch_guard =
+            futures::executor::block_on(state.proxy_service.lock_switch_for_app(app_type.as_str()));
+        let providers = state.db.get_all_providers(app_type.as_str())?;
         let provider = providers
             .get(id)
             .ok_or_else(|| AppError::Message(format!("供应商 {id} 不存在")))?;
@@ -1675,14 +1677,14 @@ impl ProviderService {
         // Use effective current provider (validated existence) to ensure backfill targets valid provider
         let current_id = crate::settings::get_effective_current_provider(&state.db, &app_type)?;
 
-        if let Some(current_id) = current_id {
+        if let Some(current_id) = current_id.as_deref() {
             if current_id != id {
                 // Additive mode apps - all providers coexist in the same file,
                 // no backfill needed (backfill is for exclusive mode apps like Claude/Codex/Gemini)
                 if !app_type.is_additive_mode() {
                     // Only backfill when switching to a different provider
                     if let Ok(live_config) = read_live_settings(app_type.clone()) {
-                        if let Some(mut current_provider) = providers.get(&current_id).cloned() {
+                        if let Some(mut current_provider) = providers.get(current_id).cloned() {
                             current_provider.settings_config =
                                 strip_common_config_from_live_settings(
                                     state.db.as_ref(),
@@ -1704,17 +1706,54 @@ impl ProviderService {
             }
         }
 
-        // Additive mode apps skip setting is_current (no such concept)
-        if !app_type.is_additive_mode() {
-            // Update local settings (device-level, takes priority)
-            crate::settings::set_current_provider(&app_type, Some(id))?;
-
-            // Update database is_current (as default for new devices)
-            state.db.set_current_provider(app_type.as_str(), id)?;
-        }
-
         // Sync to live (write_gemini_live handles security flag internally for Gemini)
         write_live_with_common_config(state.db.as_ref(), &app_type, provider)?;
+
+        // Additive mode apps skip setting is_current (no such concept). For switch-mode apps,
+        // update current only after the live write succeeds so a failed target write cannot make
+        // later backfill treat the target provider as current while live still contains old data.
+        if !app_type.is_additive_mode() {
+            if let Err(err) = crate::settings::set_current_provider(&app_type, Some(id)) {
+                if let Some(previous_id) = current_id.as_deref() {
+                    if let Ok(Some(previous_provider)) =
+                        state.db.get_provider_by_id(previous_id, app_type.as_str())
+                    {
+                        if let Err(restore_err) = write_live_with_common_config(
+                            state.db.as_ref(),
+                            &app_type,
+                            &previous_provider,
+                        ) {
+                            log::warn!(
+                                "Failed to restore live config for '{}' after current-provider update failed: {restore_err}",
+                                previous_id
+                            );
+                        }
+                    }
+                }
+                return Err(err);
+            }
+
+            if let Err(err) = state.db.set_current_provider(app_type.as_str(), id) {
+                let _ = crate::settings::set_current_provider(&app_type, current_id.as_deref());
+                if let Some(previous_id) = current_id.as_deref() {
+                    if let Ok(Some(previous_provider)) =
+                        state.db.get_provider_by_id(previous_id, app_type.as_str())
+                    {
+                        if let Err(restore_err) = write_live_with_common_config(
+                            state.db.as_ref(),
+                            &app_type,
+                            &previous_provider,
+                        ) {
+                            log::warn!(
+                                "Failed to restore live config for '{}' after database current-provider update failed: {restore_err}",
+                                previous_id
+                            );
+                        }
+                    }
+                }
+                return Err(err);
+            }
+        }
 
         // Hermes is additive, so "switching" doesn't overwrite a live config file
         // — we instead update the top-level `model:` section to point at this
