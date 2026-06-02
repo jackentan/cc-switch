@@ -111,7 +111,9 @@ function compareVersion(a: string, b: string): number {
   return 0;
 }
 
-async function fetchLatestRelease(timeout: number): Promise<GitHubRelease | null> {
+async function fetchLatestRelease(
+  timeout: number,
+): Promise<GitHubRelease | null> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeout);
 
@@ -166,7 +168,8 @@ export async function checkForUpdate(
     return { status: "up-to-date" };
   }
 
-  const releaseUrl = release.html_url || `${RELEASES_PAGE_URL}/tag/${release.tag_name}`;
+  const releaseUrl =
+    release.html_url || `${RELEASES_PAGE_URL}/tag/${release.tag_name}`;
   const info: UpdateInfo = {
     currentVersion,
     availableVersion,

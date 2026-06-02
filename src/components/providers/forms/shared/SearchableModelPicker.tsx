@@ -2,7 +2,11 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -38,16 +42,24 @@ export function SearchableModelPicker({
 
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([vendor, vendorModels]) => [
-        vendor,
-        [...vendorModels].sort((a, b) => a.id.localeCompare(b.id)),
-      ] as const);
+      .map(
+        ([vendor, vendorModels]) =>
+          [
+            vendor,
+            [...vendorModels].sort((a, b) => a.id.localeCompare(b.id)),
+          ] as const,
+      );
   }, [models]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="shrink-0" type="button">
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0"
+          type="button"
+        >
           <ChevronDown className="h-4 w-4" />
         </Button>
       </PopoverTrigger>

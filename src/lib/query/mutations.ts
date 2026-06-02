@@ -11,7 +11,9 @@ import { openclawKeys } from "@/hooks/useOpenClaw";
 import { invalidateHermesProviderCaches } from "@/hooks/useHermes";
 import type { ProvidersQueryData } from "@/lib/query/queries";
 
-const sortProvidersForInsert = (providers: Record<string, Provider>): Provider[] =>
+const sortProvidersForInsert = (
+  providers: Record<string, Provider>,
+): Provider[] =>
   Object.values(providers).sort((a, b) => {
     const indexA = a.sortIndex ?? Number.MAX_SAFE_INTEGER;
     const indexB = b.sortIndex ?? Number.MAX_SAFE_INTEGER;
@@ -91,7 +93,10 @@ export const useAddProviderMutation = (appId: AppId) => {
           try {
             existingProviders = await providersApi.getAll(appId);
           } catch (error) {
-            console.error("Failed to load providers before inserting new provider", error);
+            console.error(
+              "Failed to load providers before inserting new provider",
+              error,
+            );
           }
         }
 
@@ -106,7 +111,10 @@ export const useAddProviderMutation = (appId: AppId) => {
             await providersApi.updateSortOrder(updates, appId);
             newProvider.sortIndex = 1;
           } catch (error) {
-            console.error("Failed to update sort order before adding provider", error);
+            console.error(
+              "Failed to update sort order before adding provider",
+              error,
+            );
             throw error instanceof Error
               ? error
               : new Error("Failed to update sort order before adding provider");

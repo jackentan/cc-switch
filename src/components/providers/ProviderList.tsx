@@ -368,7 +368,10 @@ export function ProviderList({
         try {
           await providersApi.updateTrayMenu();
         } catch (trayError) {
-          console.error("Failed to update tray menu after quick sort", trayError);
+          console.error(
+            "Failed to update tray menu after quick sort",
+            trayError,
+          );
         }
         toast.success(
           t("provider.sortUpdated", {

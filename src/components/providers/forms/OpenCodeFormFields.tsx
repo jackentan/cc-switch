@@ -11,13 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Download,
-  Plus,
-  Trash2,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
+import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
 import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {
   fetchModelsForConfig,
