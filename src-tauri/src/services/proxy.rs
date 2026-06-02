@@ -2015,10 +2015,6 @@ impl ProxyService {
         })
     }
 
-    pub async fn lock_switch_for_app(&self, app_type: &str) -> tokio::sync::OwnedMutexGuard<()> {
-        self.switch_locks.lock_for_app(app_type).await
-    }
-
     #[cfg(test)]
     async fn lock_switch_for_test(&self, app_type: &str) -> tokio::sync::OwnedMutexGuard<()> {
         self.lock_switch_for_app(app_type).await
