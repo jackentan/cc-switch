@@ -1652,8 +1652,10 @@ impl ProviderService {
             return Ok(SwitchResult::default());
         }
 
-        // Normal mode: full switch with Live config write
-        Self::switch_normal(state, app_type, id)
+        // Normal mode: full switch with Live config write. The per-app switch
+        // lock is already held for Claude/Codex/Gemini, so avoid taking it
+        // again; tokio::Mutex is not reentrant.
+        Self::switch_normal_locked(state, app_type, id)
     }
 
     /// Normal switch flow (non-proxy mode)
@@ -1664,6 +1666,15 @@ impl ProviderService {
     ) -> Result<SwitchResult, AppError> {
         let _switch_guard =
             futures::executor::block_on(state.proxy_service.lock_switch_for_app(app_type.as_str()));
+        Self::switch_normal_locked(state, app_type, id)
+    }
+
+    /// Normal switch flow after the caller has acquired the per-app switch lock.
+    fn switch_normal_locked(
+        state: &AppState,
+        app_type: AppType,
+        id: &str,
+    ) -> Result<SwitchResult, AppError> {
         let providers = state.db.get_all_providers(app_type.as_str())?;
         let provider = providers
             .get(id)
