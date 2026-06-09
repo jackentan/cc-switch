@@ -2,18 +2,24 @@
 
 # CC Switch (Fork)
 
-Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.0` und behält die persönlichen Änderungen dieses Forks bei. Spätere Commits aus upstream `main` sind möglicherweise noch nicht synchronisiert.
+### Der All-in-One-Manager für Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw & Hermes Agent
 
-**Dies ist ein persönlicher Fork mit Fokus auf praktische Nutzung.** Einige hinzugefügte oder geänderte Funktionen wurden nicht vollständig getestet, daher können **Fehler oder Inkompatibilitäten mit upstream** auftreten. Wenn Sie die sicherste Variante möchten, verwenden Sie die [offizielle Version](https://github.com/farion1231/cc-switch).
-
-[![Version](https://img.shields.io/badge/version-3.16.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.16.2--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
-[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | Deutsch | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
+<a href="https://trendshift.io/repositories/15372" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15372" alt="farion1231%2Fcc-switch | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+### 🌐 Die einzige offizielle Website: **[ccswitch.io](https://ccswitch.io)**
+
+[中文首页](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | Deutsch | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
 
 </div>
+
+Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.2` und behält die persönlichen Änderungen dieses Forks bei.
+
+**Dies ist ein persönlicher Fork mit Fokus auf praktische Nutzung.** Einige hinzugefügte oder geänderte Funktionen wurden nicht vollständig getestet, daher können **Fehler oder Inkompatibilitäten mit upstream** auftreten. Wenn Sie die sicherste Variante möchten, verwenden Sie die [offizielle Version](https://github.com/farion1231/cc-switch).
 
 ## Unterschiede zum Upstream
 
@@ -29,7 +35,6 @@ Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-
 | Aktualisierung | Nutzt die automatische Update-Kette von upstream | Prüft die Releases dieses Forks, öffnet die Release-Seite und lässt den Nutzer manuell herunterladen |
 | Veröffentlichungsquelle | Releases des offiziellen Repos | Installer werden in den Releases dieses Forks veröffentlicht |
 
----
 
 ## ❤️Sponsoren
 
@@ -160,19 +165,24 @@ Registrieren Sie sich jetzt über <a href="https://pateway.ai/?ch=etzpm8&aff=WB6
 <td>Atlas Cloud ist eine vollmodale KI-Inferenzplattform, die Entwicklern über eine einzige KI-API Zugriff auf Videogenerierung, Bildgenerierung und LLM-APIs bietet. Statt mehrere Anbieterintegrationen zu verwalten, verbinden Sie sich einmal und erhalten einheitlichen Zugriff auf mehr als 300 kuratierte Modelle über alle Modalitäten hinweg. Sehen Sie sich die neue <a href="https://www.atlascloud.ai/coding-plan?utm_source=github&utm_campaign=cc-switch">Coding-Plan</a>-Aktion von Atlas Cloud für kostengünstigeren API-Zugang an!</td>
 </tr>
 
+<tr>
+<td width="180"><a href="https://www.ccsub.net/register?ref=Y6Z8DXEA"><img src="assets/partners/logos/ccsub.jpg" alt="CCSub" width="150"></a></td>
+<td>Danke an CCSub für die Unterstützung dieses Projekts! CCSub ist eine zuverlässige und kostengünstige AI-API-Relay-Plattform — Ihr direkter Ersatz für ein Claude.ai-Abonnement. Mit einem einzigen API-Schlüssel erhalten Sie Zugriff auf Claude Opus 4.8, Sonnet, Haiku, GPT-5, Gemini und DeepSeek zu etwa 30 % der Kosten der direkten API-Nutzung — ohne VPN, weltweit nutzbar. Kompatibel mit Claude Code, Codex, Cursor, Cline, Continue, Windsurf und allen gängigen AI-Coding-Tools. Registrieren Sie sich über <a href="https://www.ccsub.net/register?ref=Y6Z8DXEA">diesen Link</a> und erhalten Sie $5 Startguthaben bei der Anmeldung.</td>
+</tr>
+
 </table>
 
 </details>
 
 ## Warum CC Switch?
 
-Modernes KI-gestütztes Programmieren stützt sich auf CLI-Werkzeuge wie Claude Code, Codex, Gemini CLI, OpenCode und OpenClaw — doch jedes hat sein eigenes Konfigurationsformat. Der Wechsel des API-Anbieters bedeutet, JSON-, TOML- oder `.env`-Dateien von Hand zu bearbeiten, und es gibt keine einheitliche Möglichkeit, MCP und Skills über mehrere Werkzeuge hinweg zu verwalten.
+Modernes KI-gestütztes Programmieren stützt sich auf Werkzeuge wie Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw und Hermes — doch jedes hat sein eigenes Konfigurationsformat. Der Wechsel des API-Anbieters bedeutet, JSON-, TOML- oder `.env`-Dateien von Hand zu bearbeiten, und es gibt keine einheitliche Möglichkeit, MCP und Skills über mehrere Werkzeuge hinweg zu verwalten.
 
-**CC Switch** gibt Ihnen eine einzige Desktop-App, um alle fünf CLI-Werkzeuge zu verwalten. Statt Konfigurationsdateien von Hand zu bearbeiten, erhalten Sie eine visuelle Oberfläche, um Anbieter mit einem Klick zu importieren und sofort zwischen ihnen zu wechseln — mit 50+ integrierten Anbieter-Presets, einheitlicher MCP- und Skills-Verwaltung und schnellem Umschalten über das System-Tray. Das Ganze gestützt auf eine zuverlässige SQLite-Datenbank mit atomaren Schreibvorgängen, die Ihre Konfigurationen vor Beschädigung schützen.
+**CC Switch** gibt Ihnen eine einzige Desktop-App, um alle unterstützten KI-Werkzeuge zu verwalten. Statt Konfigurationsdateien von Hand zu bearbeiten, erhalten Sie eine visuelle Oberfläche, um Anbieter mit einem Klick zu importieren und sofort zwischen ihnen zu wechseln — mit 50+ integrierten Anbieter-Presets, einheitlicher MCP- und Skills-Verwaltung und schnellem Umschalten über das System-Tray. Das Ganze gestützt auf eine zuverlässige SQLite-Datenbank mit atomaren Schreibvorgängen, die Ihre Konfigurationen vor Beschädigung schützen.
 
-- **Eine App, fünf CLI-Werkzeuge** — Verwalten Sie Claude Code, Codex, Gemini CLI, OpenCode und OpenClaw über eine einzige Oberfläche
+- **Eine App, sieben Werkzeuge** — Verwalten Sie Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw und Hermes über eine einzige Oberfläche
 - **Kein manuelles Bearbeiten mehr** — 50+ Anbieter-Presets einschließlich AWS Bedrock, NVIDIA NIM und Community-Relays; einfach auswählen und umschalten
-- **Einheitliche MCP- & Skills-Verwaltung** — Ein Panel zur Verwaltung von MCP-Servern und Skills über vier Apps hinweg mit bidirektionaler Synchronisierung
+- **Einheitliche MCP- & Skills-Verwaltung** — Ein Panel zur Verwaltung von MCP-Servern und Skills für Claude, Codex, Gemini, OpenCode und Hermes mit bidirektionaler Synchronisierung
 - **Schnellumschaltung über System-Tray** — Wechseln Sie Anbieter sofort über das Tray-Menü, ohne die vollständige App öffnen zu müssen
 - **Cloud-Synchronisierung** — Synchronisieren Sie Anbieterdaten geräteübergreifend über Dropbox, OneDrive, iCloud oder WebDAV-Server
 - **Plattformübergreifend** — Native Desktop-App für Windows, macOS und Linux, gebaut mit Tauri 2
@@ -186,12 +196,12 @@ Modernes KI-gestütztes Programmieren stützt sich auf CLI-Werkzeuge wie Claude 
 
 ## Funktionen
 
-[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.15.0-en.md)
+[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.16.2-en.md)
 
 ### Anbieterverwaltung
 
-- **5 CLI-Werkzeuge, 50+ Presets** — Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw; Schlüssel kopieren und mit einem Klick importieren
-- **Universelle Anbieter** — Eine Konfiguration synchronisiert sich mit mehreren Apps (OpenCode, OpenClaw)
+- **7 unterstützte Werkzeuge, 50+ Presets** — Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes; Schlüssel kopieren und mit einem Klick importieren
+- **Universelle Anbieter** — Eine Konfiguration synchronisiert sich mit Claude Code, Codex und Gemini CLI
 - Umschaltung mit einem Klick, Schnellzugriff über System-Tray, Sortierung per Drag-and-drop, Import/Export
 
 ### Proxy & Failover
@@ -201,7 +211,7 @@ Modernes KI-gestütztes Programmieren stützt sich auf CLI-Werkzeuge wie Claude 
 
 ### MCP, Prompts & Skills
 
-- **Einheitliches MCP-Panel** — Verwalten Sie MCP-Server über 4 Apps hinweg mit bidirektionaler Synchronisierung und Deep-Link-Import
+- **Einheitliches MCP-Panel** — Verwalten Sie MCP-Server für Claude, Codex, Gemini, OpenCode und Hermes mit bidirektionaler Synchronisierung und Deep-Link-Import
 - **Prompts** — Markdown-Editor mit App-übergreifender Synchronisierung (CLAUDE.md / AGENTS.md / GEMINI.md) und Backfill-Schutz
 - **Skills** — Installation mit einem Klick aus GitHub-Repositorys oder ZIP-Dateien, Verwaltung eigener Repositorys, mit Unterstützung für Symlinks und Dateikopien
 
@@ -211,21 +221,21 @@ Modernes KI-gestütztes Programmieren stützt sich auf CLI-Werkzeuge wie Claude 
 
 ### Session Manager & Workspace
 
-- Durchsuchen, suchen und stellen Sie den Gesprächsverlauf über alle Apps hinweg wieder her
+- Gesprächsverlauf aus unterstützten Sitzungsquellen durchsuchen, suchen und wiederherstellen
 - **Workspace-Editor** (OpenClaw) — Bearbeiten Sie Agent-Dateien (AGENTS.md, SOUL.md usw.) mit Markdown-Vorschau
 
 ### System & Plattform
 
 - **Cloud-Synchronisierung** — Eigenes Konfigurationsverzeichnis (Dropbox, OneDrive, iCloud, NAS) und WebDAV-Server-Synchronisierung
 - **Deep Link** (`ccswitch://`) — Importieren Sie Anbieter, MCP-Server, Prompts und Skills per URL
-- Dunkles / Helles / System-Theme, automatischer Start, automatischer Updater, atomare Schreibvorgänge, automatische Backups, i18n (zh/en/ja)
+- Dunkles / Helles / System-Theme, automatischer Start, automatischer Updater, atomare Schreibvorgänge, automatische Backups, i18n (zh/zh-TW/en/ja)
 
 ## FAQ
 
 <details>
-<summary><strong>Welche KI-CLI-Werkzeuge unterstützt CC Switch?</strong></summary>
+<summary><strong>Welche KI-Werkzeuge unterstützt CC Switch?</strong></summary>
 
-CC Switch unterstützt fünf Werkzeuge: **Claude Code**, **Codex**, **Gemini CLI**, **OpenCode** und **OpenClaw**. Jedes Werkzeug verfügt über dedizierte Anbieter-Presets und Konfigurationsverwaltung.
+CC Switch unterstützt sieben Werkzeuge: **Claude Code**, **Claude Desktop**, **Codex**, **Gemini CLI**, **OpenCode**, **OpenClaw** und **Hermes**. Jedes Werkzeug verfügt über dedizierte Anbieter-Presets und Konfigurationsverwaltung.
 
 </details>
 
@@ -294,8 +304,8 @@ Ausführliche Anleitungen zu jeder Funktion finden Sie im **[Benutzerhandbuch](d
 
 - **MCP**: Klicken Sie auf die Schaltfläche „MCP" → Server über Vorlagen oder eigene Konfiguration hinzufügen → Synchronisierung pro App umschalten
 - **Prompts**: Klicken Sie auf „Prompts" → Presets mit dem Markdown-Editor erstellen → Aktivieren, um mit den Live-Dateien zu synchronisieren
-- **Skills**: Klicken Sie auf „Skills" → GitHub-Repositorys durchsuchen → mit einem Klick in allen Apps installieren
-- **Sessions**: Klicken Sie auf „Sessions" → Gesprächsverlauf über alle Apps hinweg durchsuchen, suchen und wiederherstellen
+- **Skills**: Klicken Sie auf „Skills" → GitHub-Repositorys durchsuchen → mit einem Klick in unterstützte Apps installieren
+- **Sessions**: Klicken Sie auf „Sessions" → Gesprächsverlauf aus unterstützten Sitzungsquellen durchsuchen, suchen und wiederherstellen
 
 > **Hinweis**: Beim Erststart können Sie bestehende CLI-Werkzeug-Konfigurationen manuell als Standardanbieter importieren.
 
@@ -309,7 +319,7 @@ Ausführliche Anleitungen zu jeder Funktion finden Sie im **[Benutzerhandbuch](d
 
 ### Windows-Nutzer
 
-Laden Sie das neueste Installationsprogramm `CC-Switch-v{version}-Windows.msi` oder die portable Version `CC-Switch-v{version}-Windows-Portable.zip` von der Seite [Releases](../../releases) herunter.
+Laden Sie das neueste Installationsprogramm `CC-Switch-v{version}-Windows.msi` oder die portable Version `CC-Switch-v{version}-Windows-Portable.zip` von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter.
 
 ### macOS-Nutzer
 
@@ -327,7 +337,7 @@ brew upgrade --cask cc-switch
 
 **Methode 2: Manueller Download**
 
-Laden Sie `CC-Switch-v{version}-macOS.dmg` (empfohlen) oder `.zip` von der Seite [Releases](../../releases) herunter.
+Laden Sie `CC-Switch-v{version}-macOS.dmg` (empfohlen) oder `.zip` von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter.
 
 > **Hinweis**: CC Switch für macOS ist von Apple code-signiert und notarisiert. Sie können es direkt installieren und öffnen.
 
@@ -341,7 +351,7 @@ paru -S cc-switch-bin
 
 ### Linux-Nutzer
 
-Laden Sie den neuesten Linux-Build von der Seite [Releases](../../releases) herunter:
+Laden Sie den neuesten Linux-Build von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter:
 
 - `CC-Switch-v{version}-Linux.deb` (Debian/Ubuntu)
 - `CC-Switch-v{version}-Linux.rpm` (Fedora/RHEL/openSUSE)
@@ -508,7 +518,7 @@ pnpm test:unit --coverage
 │   ├── lib/
 │   │   ├── api/                # Tauri-API-Wrapper (typsicher)
 │   │   └── query/              # TanStack-Query-Konfiguration
-│   ├── locales/                # Übersetzungen (zh/en/ja)
+│   ├── locales/                # Übersetzungen (zh/zh-TW/en/ja)
 │   ├── config/                 # Presets (providers/mcp)
 │   └── types/                  # TypeScript-Definitionen
 ├── src-tauri/                  # Backend (Rust)
