@@ -2,11 +2,11 @@
 
 # CC Switch (Fork)
 
-This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.0`, with this fork's personal changes kept. Later upstream `main` commits may not be synced yet.
+This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.3`, with this fork's personal changes kept.
 
 **This is a personal-use fork focused on practicality.** Some added or modified features have not been fully tested, so **bugs or incompatibilities with upstream may exist**. If you want the safest option, use the [official version](https://github.com/farion1231/cc-switch).
 
-[![Version](https://img.shields.io/badge/version-3.16.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.16.3--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
@@ -25,7 +25,7 @@ This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-sw
 | New provider position | Added to the end | Inserted in second position when existing providers exist, making it easier to enable or reorder |
 | Provider ordering | Mostly drag-and-drop | Keeps drag-and-drop and adds right-click move to top / move to bottom |
 | Tray action | Left click tends to open the tray menu | Left-click tray icon shows / hides the main window |
-| Model test | Default prompt is relatively simple | Uses multiple lightweight prompts and randomly picks one per test; custom one-prompt-per-line input is supported |
+| Connectivity check | Checks whether the provider address is reachable | Follows upstream's lightweight reachability check, without sending real model requests |
 | Update flow | Uses upstream auto-update chain | Checks this fork's Releases, opens the release page, and lets the user download manually |
 | Release source | Official repo Releases | Installers are published in this fork's Releases |
 
@@ -33,7 +33,7 @@ This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-sw
 
 ## Main Features
 
-### Current Version: v3.16.0-fork.1
+### Current Version: v3.16.3-fork.1
 
 - Supports **Claude Code, Codex, Gemini CLI, OpenCode, and OpenClaw**
 - Unified provider import, switching, sorting, duplication, import/export
@@ -48,12 +48,10 @@ This fork is based on [farion1231/cc-switch](https://github.com/farion1231/cc-sw
 - New providers inserted in second position by default
 - Right-click provider card to move it to top or bottom
 - Left-click tray icon toggles main window visibility
-- Model testing improvements
-  - test entry restored
-  - advanced test settings kept
-  - built-in pool of 18 default test prompts
-  - one prompt is randomly selected for each test
-  - custom multi-line prompt pool supported
+- Lightweight connectivity checks
+  - checks whether provider base URLs are reachable
+  - avoids sending real model requests during checks
+  - reduces false failures from auth, model validation, and WAF rules
 - Manual update guidance
   - checks this fork's Releases
   - opens release page for manual update

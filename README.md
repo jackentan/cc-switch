@@ -4,7 +4,7 @@
 
 ### Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw 和 Hermes Agent 的全方位管理工具
 
-[![Version](https://img.shields.io/badge/version-3.16.2--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.16.3--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
@@ -17,7 +17,7 @@
 
 </div>
 
-基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.2`，并保留本 Fork 的自用改动。
+基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.3`，并保留本 Fork 的自用改动。
 
 **个人自用修改版，主打能用就行。** 新增或修改的功能未经充分测试，**可能存在 bug 或与上游不兼容**，介意请使用[官方版](https://github.com/farion1231/cc-switch)。
 
@@ -31,7 +31,7 @@
 | 新增供应商 | 新配置默认排到列表最后 | 有已有配置时，新配置默认插到第二位，方便马上启用或调整 |
 | 调整供应商顺序 | 主要靠拖拽 | 保留拖拽，并增加右键“一键置顶 / 一键置底” |
 | 托盘操作 | 左键更偏向打开托盘菜单 | 左键托盘图标直接显示 / 隐藏主窗口 |
-| 模型测试 | 默认测试提示词较单一 | 内置多条轻量测试提示词，测试时随机抽取；也可以一行一条自定义 |
+| 连通检测 | 仅检查供应商地址是否可达 | 跟随上游轻量连通检测，不发送真实模型请求，减少误报和额外消耗 |
 | 更新方式 | 使用上游自动更新链路 | 检查本 Fork Releases，有新版本时打开发布页，由用户手动下载 |
 | 发布来源 | 官方仓库发布 | 本 Fork 独立发布，安装包以本仓库 Releases 为准 |
 
@@ -81,8 +81,8 @@ Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更�
 </tr>
 
 <tr>
-<td width="180"><a href="https://www.volcengine.com/activity/agentplan?utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch"><img src="assets/partners/logos/huoshan.png" alt="HuoShan" width="150"></a></td>
-<td>感谢火山方舟Agent Plan 模型赞助了本项目！方舟Agent Plan 模型订阅套餐集成了包含Doubao-Seed、Doubao-Seedance、Doubao-Seedream等在内的字节跳动自研SOTA级模型，覆盖文本、代码、图像、视频等多模态任务。同时支持一站式接入DeepSeek V4、GLM 5.1等主流大模型。超全模态模型与 Harness 升级一步到位，深度支持 Agent 框架与 AI 编程工具。方舟 Agent Plan 为 CC Switch 的用户提供了专属福利：通过<a href="https://www.volcengine.com/activity/agentplan?utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch">此链接</a>订阅方舟AgentPlan，新客户首月40元起！<a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch">>>For developers outside Mainland China, please click here</a></td>
+<td width="180"><a href="https://www.volcengine.com/activity/codingplan?ac=MMAP8JTTCAQ2&rc=6J6FV5N2&utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch"><img src="assets/partners/logos/huoshan.png" alt="HuoShan" width="150"></a></td>
+<td>感谢火山方舟 Agent Plan 模型赞助了本项目！方舟 Agent Plan 模型订阅套餐集成了包含 Doubao-Seed、Doubao-Seedance、Doubao-Seedream 等在内的字节跳动自研 SOTA 级模型，覆盖文本、代码、图像、视频等多模态任务。最新支持 MiniMax-M3、DeepSeek-V4 系列、GLM-5.1、Doubao-Seed-2.0 系列、Kimi-K2.6 等模型，工具不限。超全模态模型与 Harness 升级一步到位，深度支持 Agent 框架与 AI 编程工具。一次订阅，可以为不同任务切换合适的 AI 引擎。方舟 Coding Plan 为 CC Switch 的用户提供了专属福利：通过<a href="https://www.volcengine.com/activity/codingplan?ac=MMAP8JTTCAQ2&rc=6J6FV5N2&utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch">此链接</a>订阅方舟 Coding Plan，新客户首两个月享 2.5 折优惠，再用专属邀请码 6J6FV5N2 领取奖励叠加 9.5 折，低至 9.4 元/月！<a href="https://www.byteplus.com/en/product/modelark?utm_campaign=hw&utm_content=ccswitch&utm_medium=devrel_tool_web&utm_source=OWO&utm_term=ccswitch">>>For developers outside Mainland China, please click here</a></td>
 </tr>
 
 <tr>
@@ -126,11 +126,6 @@ Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更�
 <td>感谢 米醋API 赞助了本项目！米醋API 是一家致力于提供极致性价比与高稳定性的全球大模型中转服务商。米醋API 背后有实体企业做核心保障，杜绝跑路风险，支持极速正规开票！我们主打“试错零成本”：1 元起充低门槛，0 手续费随时退款！米醋API 为本软件的用户提供了特别优惠，使用<a href="https://www.micuapi.ai/register?aff=aOYQ">此链接</a>注册并在充值时填写"ccswitch"优惠码可享九折优惠！</td>
 </tr>
 <tr>
-<td width="180"><a href="https://lemondata.cc/r/FFX1ZDUP"><img src="assets/partners/logos/lemondata.png" alt="LemonData" width="150"></a></td>
-<td>感谢 LemonData 赞助了本项目！LemonData 是一个高性能 AI API 聚合平台——一个 API Key 即可访问 GPT、Claude、Gemini、DeepSeek 等 300+ 模型。所有模型定价为官方价格的 30%-70%，支持自动故障转移、智能路由和无限并发。新用户注册即获 $1 免费额度——通过<a href="https://lemondata.cc/r/FFX1ZDUP">此链接</a>注册即可领取奖励，立即开始开发！</td>
-</tr>
-
-<tr>
 <td width="180"><a href="https://ctok.ai"><img src="assets/partners/logos/ctok.png" alt="CTok" width="150"></a></td>
 <td>感谢 CTok.ai 赞助了本项目！CTok.ai 致力于打造一站式 AI 编程工具服务平台。我们提供 Claude Code 专业套餐及技术社群服务，同时支持 Google Gemini 和 OpenAI Codex。通过精心设计的套餐方案和专业的技术社群，为开发者提供稳定的服务保障和持续的技术支持，让 AI 辅助编程真正成为开发者的生产力工具。点击<a href="https://ctok.ai">这里</a>注册！</td>
 </tr>
@@ -168,6 +163,11 @@ Claude Code / Codex / Gemini 官方渠道低至 3.8 / 0.2 / 0.9 折，充值更�
 <tr>
 <td width="180"><a href="https://www.ccsub.net/register?ref=Y6Z8DXEA"><img src="assets/partners/logos/ccsub.jpg" alt="CCSub" width="150"></a></td>
 <td>感谢 CCSub 赞助本项目！CCSub 是稳定、实惠的 AI API 中转平台，是 Claude Code 官方订阅的超强平替。一个 API Key 即可调用 Claude Opus 4.8、Sonnet 4.6、Haiku 4.5、GPT-5、Gemini、DeepSeek 全系列模型，价格约为官方直连的 1/3，全球直连无需梯子。兼容 Claude Code、Codex、Cursor、Cline、Continue、Windsurf 等所有主流 AI 编程工具。通过<a href="https://www.ccsub.net/register?ref=Y6Z8DXEA">此链接</a>注册即送 $5 体验额度！</td>
+</tr>
+
+<tr>
+<td width="180"><a href="https://unity2.ai/register?source=ccs"><img src="assets/partners/logos/unity2.jpg" alt="Unity2.ai" width="150"></a></td>
+<td>Thanks to Unity2.ai for sponsoring this project! Unity2.ai is a high-performance AI model API relay platform for individual developers, teams, and enterprises. Long trusted by leading companies in China, it serves over 30 billion tokens per day and supports high concurrency at the 5,000 RPM level. It offers balance-based billing, first top-up bonuses, bundle subscriptions, corporate invoicing, and dedicated support. Register via <a href="https://unity2.ai/register?source=ccs">this link</a> to get $2 in credits, plus another $10 for joining the official group — up to $12 in free credits!</td>
 </tr>
 
 </table>

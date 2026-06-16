@@ -6,16 +6,6 @@ const RELEASES_PAGE_URL = "https://github.com/kongkongyo/cc-switch/releases";
 
 export type UpdateChannel = "stable" | "beta";
 
-export type UpdaterPhase =
-  | "idle"
-  | "checking"
-  | "available"
-  | "downloading"
-  | "installing"
-  | "restarting"
-  | "upToDate"
-  | "error";
-
 export interface UpdateInfo {
   currentVersion: string;
   availableVersion: string;
@@ -150,8 +140,7 @@ export async function getCurrentVersion(): Promise<string> {
 export async function checkForUpdate(
   opts: CheckOptions = {},
 ): Promise<
-  | { status: "up-to-date" }
-  | { status: "available"; info: UpdateInfo; update: UpdateHandle }
+  { status: "up-to-date" } | { status: "available"; info: UpdateInfo }
 > {
   const currentVersion = await getCurrentVersion();
   const release = await fetchLatestRelease(opts.timeout ?? 30000);
@@ -178,14 +167,7 @@ export async function checkForUpdate(
     releaseUrl,
   };
 
-  const update: UpdateHandle = {
-    version: availableVersion,
-    notes: info.notes,
-    date: info.pubDate,
-    releaseUrl,
-  };
-
-  return { status: "available", info, update };
+  return { status: "available", info };
 }
 
 export async function relaunchApp(): Promise<void> {
