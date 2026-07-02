@@ -10,6 +10,7 @@ import { generateUUID } from "@/utils/uuid";
 import { openclawKeys } from "@/hooks/useOpenClaw";
 import { invalidateHermesProviderCaches } from "@/hooks/useHermes";
 import type { ProvidersQueryData } from "@/lib/query/queries";
+import { usageKeys } from "@/lib/query/usage";
 
 const sortProvidersForInsert = (
   providers: Record<string, Provider>,
@@ -198,8 +199,16 @@ export const useUpdateProviderMutation = (appId: AppId) => {
       await providersApi.update(provider, appId, originalId);
       return provider;
     },
-    onSuccess: async () => {
+    onSuccess: async (provider, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["providers", appId] });
+      await queryClient.invalidateQueries({
+        queryKey: usageKeys.script(provider.id, appId),
+      });
+      if (variables.originalId && variables.originalId !== provider.id) {
+        await queryClient.invalidateQueries({
+          queryKey: usageKeys.script(variables.originalId, appId),
+        });
+      }
       if (appId === "openclaw") {
         await queryClient.invalidateQueries({
           queryKey: openclawKeys.health,
