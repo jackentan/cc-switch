@@ -1,4 +1,4 @@
-name: Manual Portable Release (Win Portable + macOS + Linux deb)
+name: Manual Portable Release (Win Portable + macOS zip/dmg + Linux deb)
 
 on:
   workflow_dispatch:
@@ -161,7 +161,7 @@ jobs:
       - name: Build Tauri App (macOS Universal)
         run: pnpm tauri build --target universal-apple-darwin
 
-      - name: Prepare macOS Zip
+      - name: Prepare macOS Artifacts
         shell: bash
         run: |
           set -euxo pipefail
@@ -184,15 +184,18 @@ jobs:
           APP_DIR=$(dirname "$APP_PATH")
           APP_NAME=$(basename "$APP_PATH")
           NEW_ZIP="CC-Switch-v${VERSION}-macOS.zip"
+          NEW_DMG="CC-Switch-v${VERSION}-macOS.dmg"
           cd "$APP_DIR"
           ditto -c -k --sequesterRsrc --keepParent "$APP_NAME" "$NEW_ZIP"
+          hdiutil create -volname "CC Switch" -srcfolder "$APP_NAME" -ov -format UDZO "$NEW_DMG"
           mv "$NEW_ZIP" "$GITHUB_WORKSPACE/release-assets/"
-          echo "macOS zip ready: $NEW_ZIP"
+          mv "$NEW_DMG" "$GITHUB_WORKSPACE/release-assets/"
+          echo "macOS artifacts ready: $NEW_ZIP, $NEW_DMG"
 
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-zip
+          name: macos-artifacts
           path: release-assets/*
 
   build-linux:
@@ -320,7 +323,7 @@ jobs:
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: macos-zip
+          name: macos-artifacts
           path: release-assets
 
       - name: Download Linux Artifact
@@ -344,6 +347,7 @@ jobs:
 
             - **Windows**: `CC-Switch-v${{ env.VERSION }}-Windows-Portable.zip`
             - **macOS**: `CC-Switch-v${{ env.VERSION }}-macOS.zip`
+            - **macOS DMG**: `CC-Switch-v${{ env.VERSION }}-macOS.dmg`
             - **Linux (x86_64)**: `CC-Switch-v${{ env.VERSION }}-Linux-x86_64.deb`
 
             > If macOS reports the app as damaged, run: `xattr -cr "/Applications/CC Switch.app"`
