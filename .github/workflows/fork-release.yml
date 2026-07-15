@@ -1,0 +1,352 @@
+name: Manual Portable Release (Win Portable + macOS + Linux deb)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (for example: v3.17.0 or 3.17.0; optional v prefix)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: manual-portable-release
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update version in config files
+        shell: bash
+        run: |
+          # Strip optional v prefix
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          # Update package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          # Update Cargo.toml
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+          # Update tauri.conf.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          # Do not produce updater artifacts for this manual portable flow
+          sed -i "s/\"createUpdaterArtifacts\": true/\"createUpdaterArtifacts\": false/" src-tauri/tauri.conf.json
+          echo "Updated version to $VERSION"
+          grep -E '"version"|^version =|"createUpdaterArtifacts"' package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.3
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: windows-x64-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: windows-x64-pnpm-store-
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri App (no bundle)
+        run: pnpm tauri build --no-bundle
+
+      - name: Prepare Portable Zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $exePath = 'src-tauri/target/release/cc-switch.exe'
+          if (-not (Test-Path $exePath)) {
+            Write-Error "exe not found: $exePath"
+            exit 1
+          }
+          $portableDir = 'release-assets/CC-Switch-Portable'
+          New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
+          Copy-Item $exePath $portableDir
+          @('# CC Switch portable build marker', 'portable=true') |
+            Set-Content -Path (Join-Path $portableDir 'portable.ini') -Encoding UTF8
+          $zipName = "CC-Switch-v$version-Windows-Portable.zip"
+          Compress-Archive -Path "$portableDir/*" -DestinationPath "release-assets/$zipName" -Force
+          Remove-Item -Recurse -Force $portableDir
+          Write-Host "Created: $zipName"
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: release-assets/*
+
+  build-macos:
+    runs-on: macos-14
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update version in config files
+        shell: bash
+        run: |
+          # Strip optional v prefix
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          # Update package.json
+          sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          # Update Cargo.toml
+          sed -i '' "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+          # Update tauri.conf.json
+          sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          # Do not produce updater artifacts for this manual portable flow
+          sed -i '' "s/\"createUpdaterArtifacts\": true/\"createUpdaterArtifacts\": false/" src-tauri/tauri.conf.json
+          echo "Updated version to $VERSION"
+          grep -E '"version"|^version =|"createUpdaterArtifacts"' package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS targets
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.3
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: macos-arm64-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: macos-arm64-pnpm-store-
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri App (macOS Universal)
+        run: pnpm tauri build --target universal-apple-darwin
+
+      - name: Prepare macOS Zip
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+          APP_PATH=""
+          for path in \
+            "src-tauri/target/universal-apple-darwin/release/bundle/macos" \
+            "src-tauri/target/aarch64-apple-darwin/release/bundle/macos" \
+            "src-tauri/target/release/bundle/macos"; do
+            if [ -d "$path" ]; then
+              APP_PATH=$(find "$path" -maxdepth 1 -name "*.app" -type d | head -1 || true)
+              [ -n "$APP_PATH" ] && break
+            fi
+          done
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found" >&2
+            exit 1
+          fi
+          APP_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
+          NEW_ZIP="CC-Switch-v${VERSION}-macOS.zip"
+          cd "$APP_DIR"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_NAME" "$NEW_ZIP"
+          mv "$NEW_ZIP" "$GITHUB_WORKSPACE/release-assets/"
+          echo "macOS zip ready: $NEW_ZIP"
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: release-assets/*
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update version in config files
+        shell: bash
+        run: |
+          # Strip optional v prefix
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          # Update package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          # Update Cargo.toml
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+          # Update tauri.conf.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          # Do not produce updater artifacts for this manual portable flow
+          sed -i "s/\"createUpdaterArtifacts\": true/\"createUpdaterArtifacts\": false/" src-tauri/tauri.conf.json
+          echo "Updated version to $VERSION"
+          grep -E '"version"|^version =|"createUpdaterArtifacts"' package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system deps
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
+            curl \
+            wget \
+            file \
+            patchelf \
+            libssl-dev \
+            rpm \
+            flatpak \
+            flatpak-builder \
+            elfutils \
+            xdg-utils
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libayatana-appindicator3-dev
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev \
+            || sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev
+          sudo apt-get install -y --no-install-recommends libsoup-3.0-dev \
+            || sudo apt-get install -y --no-install-recommends libsoup2.4-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.3
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: linux-x64-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: linux-x64-pnpm-store-
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri App (Linux deb)
+        run: pnpm tauri build --bundles deb
+
+      - name: Prepare Linux deb
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+          DEB=$(find src-tauri/target/release/bundle -name "*.deb" | head -1 || true)
+          if [ -z "$DEB" ]; then
+            echo "No .deb found under src-tauri/target/release/bundle" >&2
+            exit 1
+          fi
+          NEW_DEB="CC-Switch-v${VERSION}-Linux-x86_64.deb"
+          cp "$DEB" "release-assets/$NEW_DEB"
+          echo "Linux deb ready: $NEW_DEB"
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: release-assets/*
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Strip v prefix
+        run: |
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-portable
+          path: release-assets
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-zip
+          path: release-assets
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: release-assets
+
+      - name: List Assets
+        run: ls -la release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: CC Switch v${{ env.VERSION }}
+          prerelease: false
+          body: |
+            ## Release Assets
+            This release was generated by the manual portable release workflow.
+
+            - **Windows**: `CC-Switch-v${{ env.VERSION }}-Windows-Portable.zip`
+            - **macOS**: `CC-Switch-v${{ env.VERSION }}-macOS.zip`
+            - **Linux (x86_64)**: `CC-Switch-v${{ env.VERSION }}-Linux-x86_64.deb`
+
+            > If macOS reports the app as damaged, run: `xattr -cr "/Applications/CC Switch.app"`
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

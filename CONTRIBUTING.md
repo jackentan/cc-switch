@@ -55,6 +55,14 @@ cargo clippy     # Run linter
 cargo test       # Run tests
 ```
 
+### Manual Portable Release Workflow (Maintainers)
+
+For fork/distribution scenarios that need manually triggered release assets, this repository provides `.github/workflows/fork-release.yml`.
+
+- Trigger it from **Actions → Manual Portable Release (Win Portable + macOS + Linux deb)**.
+- Provide a `version` input (for example `v3.17.0` or `3.17.0`).
+- The workflow builds and publishes Windows portable zip, macOS zip, and Linux deb assets.
+
 ## Code Style
 
 - **Frontend**: Prettier for formatting, ESLint for linting, strict TypeScript (`pnpm typecheck`)
@@ -182,6 +190,14 @@ cargo fmt        # 格式化 Rust 代码
 cargo clippy     # 运行 Clippy 检查
 cargo test       # 运行测试
 ```
+
+### 手动便携发布工作流（维护者）
+
+对于需要手动触发构建安装包的 fork/分发场景，仓库提供了 `.github/workflows/fork-release.yml`。
+
+- 在 **Actions → Manual Portable Release (Win Portable + macOS + Linux deb)** 手动触发。
+- 输入 `version`（例如 `v3.17.0` 或 `3.17.0`）。
+- 工作流会构建并发布 Windows 便携包、macOS zip 与 Linux deb 产物。
 
 ## 代码规范
 
