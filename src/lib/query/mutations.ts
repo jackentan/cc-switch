@@ -11,6 +11,7 @@ import { openclawKeys } from "@/hooks/useOpenClaw";
 import { invalidateHermesProviderCaches } from "@/hooks/useHermes";
 import type { ProvidersQueryData } from "@/lib/query/queries";
 import { usageKeys } from "@/lib/query/usage";
+import { CODEX_OFFICIAL_PROVIDER_ID } from "@/utils/providerCapabilities";
 
 const sortProvidersForInsert = (
   providers: Record<string, Provider>,
@@ -40,12 +41,14 @@ export const useAddProviderMutation = (appId: AppId) => {
         providerKey?: string;
         addToLive?: boolean;
         ensureClaudeDesktopOfficialSeed?: boolean;
+        ensureCodexOfficialSeed?: boolean;
       },
     ) => {
       const {
         providerKey: _providerKey,
         addToLive,
         ensureClaudeDesktopOfficialSeed,
+        ensureCodexOfficialSeed,
         ...rest
       } = providerInput;
 
@@ -55,6 +58,16 @@ export const useAddProviderMutation = (appId: AppId) => {
         const officialProvider = providers["claude-desktop-official"];
         if (!officialProvider) {
           throw new Error("Claude Desktop official provider was not created");
+        }
+        return officialProvider;
+      }
+
+      if (appId === "codex" && ensureCodexOfficialSeed) {
+        await providersApi.ensureCodexOfficialProvider();
+        const providers = await providersApi.getAll(appId);
+        const officialProvider = providers[CODEX_OFFICIAL_PROVIDER_ID];
+        if (!officialProvider) {
+          throw new Error("Codex official provider was not created");
         }
         return officialProvider;
       }

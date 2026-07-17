@@ -38,13 +38,14 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
   const [codexConfig, setCodexConfigState] = useState("");
   const [codexApiKey, setCodexApiKey] = useState("");
   const [codexBaseUrl, setCodexBaseUrl] = useState("");
-  const [codexModelName, setCodexModelName] = useState("");
+  const [codexModel, setCodexModel] = useState("");
   const [codexCatalogModels, setCodexCatalogModels] = useState<
     CodexCatalogModel[]
   >([]);
   const [codexAuthError, setCodexAuthError] = useState("");
 
   const isUpdatingCodexBaseUrlRef = useRef(false);
+  const isUpdatingCodexModelRef = useRef(false);
 
   // 初始化 Codex 配置（编辑模式）
   useEffect(() => {
@@ -122,7 +123,6 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
       if (initialBaseUrl) {
         setCodexBaseUrl(initialBaseUrl);
       }
-      setCodexModelName(extractCodexModelName(configStr) || "");
 
       setCodexApiKey(pickCodexApiKey(auth, configStr));
     }
@@ -135,10 +135,15 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     }
     const extracted = extractCodexBaseUrl(codexConfig) || "";
     setCodexBaseUrl((prev) => (prev === extracted ? prev : extracted));
-    const extractedModel = extractCodexModelName(codexConfig) || "";
-    setCodexModelName((prev) =>
-      prev === extractedModel ? prev : extractedModel,
-    );
+  }, [codexConfig]);
+
+  // 与 TOML 配置保持默认模型同步（顶层 model 键）
+  useEffect(() => {
+    if (isUpdatingCodexModelRef.current) {
+      return;
+    }
+    const extracted = extractCodexModelName(codexConfig) || "";
+    setCodexModel((prev) => (prev === extracted ? prev : extracted));
   }, [codexConfig]);
 
   // 获取 API Key（从 auth JSON）
@@ -234,12 +239,18 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     [setCodexConfig],
   );
 
-  // 处理 Codex Model 变化
-  const handleCodexModelNameChange = useCallback(
+  // 处理默认模型变化（写回 TOML 顶层 model；清空则删掉该行，交回 Codex 内置默认）
+  // 剥控制字符：值可能来自 /models 下拉（远端数据），换行等会破坏单行 TOML 语义
+  const handleCodexModelChange = useCallback(
     (model: string) => {
-      const trimmed = model.trim();
-      setCodexModelName(trimmed);
-      setCodexConfig((prev) => setCodexModelNameInConfig(prev, trimmed));
+      const sanitized = model.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+      setCodexModel(sanitized);
+
+      isUpdatingCodexModelRef.current = true;
+      setCodexConfig((prev) => setCodexModelNameInConfig(prev, sanitized));
+      setTimeout(() => {
+        isUpdatingCodexModelRef.current = false;
+      }, 0);
     },
     [setCodexConfig],
   );
@@ -257,7 +268,6 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
           setCodexBaseUrl(extracted);
         }
       }
-      setCodexModelName(extractCodexModelName(normalized) || "");
     },
     [setCodexConfig, codexBaseUrl],
   );
@@ -276,7 +286,6 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
 
       const baseUrl = extractCodexBaseUrl(config);
       setCodexBaseUrl(baseUrl || "");
-      setCodexModelName(extractCodexModelName(config) || "");
 
       setCodexApiKey(pickCodexApiKey(auth, config));
     },
@@ -288,7 +297,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     codexConfig,
     codexApiKey,
     codexBaseUrl,
-    codexModelName,
+    codexModel,
     codexCatalogModels,
     codexAuthError,
     setCodexAuth,
@@ -296,7 +305,7 @@ export function useCodexConfigState({ initialData }: UseCodexConfigStateProps) {
     setCodexCatalogModels,
     handleCodexApiKeyChange,
     handleCodexBaseUrlChange,
-    handleCodexModelNameChange,
+    handleCodexModelChange,
     handleCodexConfigChange,
     resetCodexConfig,
     getCodexAuthApiKey,
