@@ -1262,7 +1262,7 @@
     "autoCompactLimitHint": "上下文 token 數達到此閾值時自動壓縮歷史",
     "autoCompactLimitPlaceholder": "例如: 90000",
     "upstreamFormatLabel": "上游格式",
-"upstreamFormatHint": "供應商原生為 Responses API 就選 Responses（直連，不轉換格式）；使用 Chat Completions 協定就選 Chat；供應商只提供原生 Anthropic Messages 協定就選 Anthropic Messages。Chat 與 Anthropic Messages 均需開啟路由接管才能轉換為 Responses。",
+    "upstreamFormatHint": "供應商原生為 Responses API 就選 Responses（直連，不轉換格式）；使用 Chat Completions 協定就選 Chat；供應商只提供原生 Anthropic Messages 協定就選 Anthropic Messages。Chat 與 Anthropic Messages 均需開啟路由接管才能轉換為 Responses。",
     "upstreamFormatChat": "Chat Completions（需開啟路由）",
     "upstreamFormatResponses": "Responses（原生）",
     "upstreamFormatAnthropic": "Anthropic Messages（需開啟路由）",
