@@ -130,6 +130,9 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
+      - name: Set release version from tag
+        run: node scripts/set-version.mjs "${{ github.ref_name }}"
+
       - name: Prepare Tauri signing key
         shell: bash
         run: |
@@ -609,7 +612,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: CC Switch ${{ github.ref_name }}
-          prerelease: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             ## CC Switch ${{ github.ref_name }}
 

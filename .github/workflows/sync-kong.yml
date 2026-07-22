@@ -1,0 +1,124 @@
+name: Review Kong features
+
+on:
+  schedule:
+    - cron: "47 2 * * *"
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "Kong commit SHA to cherry-pick; leave empty to refresh the candidate issue"
+        required: false
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: sync-kong
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch both upstreams
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add farion https://github.com/farion1231/cc-switch.git
+          git remote add kong https://github.com/kongkongyo/cc-switch.git
+          git fetch --no-tags farion main
+          git fetch --no-tags kong main
+
+      - name: Build candidate report
+        id: report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git log --no-merges --format='%H%x09%s' --reverse farion/main..kong/main \
+            | awk -F '\t' '$2 ~ /^(feat|fix|perf|refactor)(\(|:)/ { print }' \
+            > kong-candidates.tsv
+          if [ -s kong-candidates.tsv ]; then
+            {
+              echo "## Kong feature candidates"
+              echo
+              echo 'These commits are unique to `kongkongyo/cc-switch:main` and should be reviewed before cherry-picking.'
+              echo
+              while IFS=$'\t' read -r sha subject; do
+                printf -- '- `%s` %s\n' "$sha" "$subject"
+              done < kong-candidates.tsv
+              echo
+              echo 'To propose one commit, run the workflow manually and provide its SHA in the `commit` input.'
+            } > kong-candidates.md
+            echo "has_candidates=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_candidates=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update candidate issue
+        if: ${{ steps.report.outputs.has_candidates == 'true' && !inputs.commit }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="Kong upstream feature candidates"
+          gh label create upstream-kong --color FBCA04 --description "Kong upstream review" --force
+          issue_number=$(gh issue list --state open --search "$title in:title" --json number,title --jq '.[] | select(.title == "'"$title"'") | .number' | head -1 || true)
+          if [ -n "$issue_number" ]; then
+            gh issue edit "$issue_number" --body-file kong-candidates.md
+          else
+            gh issue create --title "$title" --body-file kong-candidates.md --label upstream-kong
+          fi
+
+      - name: Cherry-pick selected feature
+        if: github.event_name == 'workflow_dispatch' && inputs.commit
+        env:
+          KONG_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$KONG_COMMIT"
+          if [[ ! "$commit" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "A full 40-character commit SHA is required." >&2
+            exit 1
+          fi
+          git show-ref --verify --quiet "refs/remotes/kong/main"
+          git cat-file -e "$commit^{commit}"
+          git merge-base --is-ancestor "$commit" kong/main
+          git switch -c "sync/kong-${commit:0:12}"
+          git cherry-pick -x "$commit"
+          node scripts/prepare-jackentan-release.mjs
+          git add -A
+          git diff --cached --quiet || git commit -m "chore(sync): restore Jackentan release metadata"
+
+      - name: Push candidate branch and create pull request
+        if: github.event_name == 'workflow_dispatch' && inputs.commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KONG_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="sync/kong-$KONG_COMMIT"
+          git fetch origin "$branch:refs/remotes/origin/$branch" || true
+          git push --force-with-lease origin "HEAD:refs/heads/$branch"
+          pr_number=$(gh pr list --state open --head "$branch" --json number --jq '.[0].number // empty')
+          if [ -z "$pr_number" ]; then
+            cat > pr-body.md <<'EOF'
+            This pull request cherry-picks a selected commit from `kongkongyo/cc-switch`.
+
+            Review conflicts and run the full CI before merging. Kong commits are intentionally never merged automatically.
+            EOF
+            gh label create kong-sync --color D93F0B --description "Selected Kong feature candidate" --force
+            gh pr create --base main --head "$branch" --title "feat(sync): review Kong commit $KONG_COMMIT" --body-file pr-body.md --label kong-sync
+          fi
+          gh workflow run ci.yml --ref "$branch"

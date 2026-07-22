@@ -1,0 +1,73 @@
+name: Sync Farion upstream
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-farion
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add farion https://github.com/farion1231/cc-switch.git
+          git fetch --no-tags farion main
+
+      - name: Prepare sync branch
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor "$(git rev-parse farion/main)" "$(git rev-parse HEAD)"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git switch -c "sync/farion-${GITHUB_RUN_ID}"
+          if ! git merge --no-ff --no-commit farion/main; then
+            git merge --abort
+            echo "Farion merge has conflicts; manual reconciliation is required." >&2
+            exit 1
+          fi
+          node scripts/prepare-jackentan-release.mjs
+          git add -A
+          git commit -m "chore(sync): merge Farion upstream"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push sync branch and create pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="sync/farion-upstream"
+          git fetch origin "$branch:refs/remotes/origin/$branch" || true
+          git push --force-with-lease origin "HEAD:refs/heads/$branch"
+          pr_number=$(gh pr list --state open --head "$branch" --json number --jq '.[0].number // empty')
+          if [ -z "$pr_number" ]; then
+            cat > pr-body.md <<'EOF'
+            This pull request mirrors the latest `farion1231/cc-switch:main` changes.
+
+            The Jackentan release endpoint and repository links are restored automatically after the merge.
+            EOF
+            gh label create upstream-sync --color 1D76DB --description "Automated primary upstream sync" --force
+            gh pr create --base main --head "$branch" --title "chore(sync): merge Farion upstream" --body-file pr-body.md --label upstream-sync
+          fi
+          gh workflow run ci.yml --ref "$branch"
