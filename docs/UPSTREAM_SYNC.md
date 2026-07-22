@@ -11,7 +11,7 @@
 `.github/workflows/sync-farion.yml` 每小时检查一次 Farion。发现新提交后，它会：
 
 1. 合并 Farion 的 `main`。
-2. 重新写入 Jackentan 的仓库链接和 Tauri 更新地址。
+2. 重新写入 Jackentan 的仓库链接、Tauri 更新公钥和更新地址。
 3. 创建 `chore(sync): merge Farion upstream` Pull Request。
 
 如果两边历史发生分叉，工作流会失败并要求人工处理，避免静默丢失本仓库改动。
@@ -28,6 +28,8 @@
 2. 需要在源码中保留版本号时，运行 `node scripts/set-version.mjs v3.18.0-jack.1` 并提交；发布工作流也会从标签自动设置构建版本。
 3. 推送标签，例如 `v3.18.0-jack.1`。
 4. `Release` 工作流会从 `jackentan` 构建并上传安装包。
+
+如果 Apple 签名、公证 Secrets 尚未完整配置，Release 会自动跳过 macOS，只发布 Windows 和 Linux；补齐全部 Apple Secrets 后，macOS 会自动加入后续发布。
 
 带连字符的标签会发布为预发布版本；不带连字符的 `v3.19.0` 会作为正式版本发布。
 
