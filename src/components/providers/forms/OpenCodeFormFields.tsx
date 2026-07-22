@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
-import { ApiKeySection, ModelDropdown } from "./shared";
+import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -876,8 +876,9 @@ export function OpenCodeFormFields({
                       })}
                     />
                     {fetchedModels.length > 0 && (
-                      <ModelDropdown
+                      <SearchableModelPicker
                         models={fetchedModels}
+                        value={key}
                         onSelect={(id) => handleModelIdChange(key, id)}
                       />
                     )}
