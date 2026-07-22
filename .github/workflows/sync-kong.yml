@@ -13,7 +13,6 @@ on:
 permissions:
   actions: write
   contents: write
-  issues: write
   pull-requests: write
 
 concurrency:
@@ -63,21 +62,19 @@ jobs:
             echo "has_candidates=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update candidate issue
+      - name: Publish candidate report
         if: ${{ steps.report.outputs.has_candidates == 'true' && !inputs.commit }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          title="Kong upstream feature candidates"
-          gh label create upstream-kong --color FBCA04 --description "Kong upstream review" --force
-          issue_number=$(gh issue list --state open --search "$title in:title" --json number,title --jq '.[] | select(.title == "'"$title"'") | .number' | head -1 || true)
-          if [ -n "$issue_number" ]; then
-            gh issue edit "$issue_number" --body-file kong-candidates.md
-          else
-            gh issue create --title "$title" --body-file kong-candidates.md --label upstream-kong
-          fi
+          cat kong-candidates.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload candidate report
+        if: ${{ steps.report.outputs.has_candidates == 'true' && !inputs.commit }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kong-feature-candidates
+          path: kong-candidates.md
 
       - name: Cherry-pick selected feature
         if: github.event_name == 'workflow_dispatch' && inputs.commit

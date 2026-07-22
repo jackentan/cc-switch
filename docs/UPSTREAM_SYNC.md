@@ -18,7 +18,7 @@
 
 ## Kong 功能
 
-`.github/workflows/sync-kong.yml` 每天生成一次候选列表，只报告 Kong 独有的 `feat`、`fix`、`perf` 和 `refactor` 提交。
+`.github/workflows/sync-kong.yml` 每天生成一次候选列表，只报告 Kong 独有的 `feat`、`fix`、`perf` 和 `refactor` 提交。候选列表会显示在 Actions 运行摘要，并作为构件下载；本仓库关闭了 Issues，因此不会创建 Issue。
 
 在 Actions 页面手动运行 `Review Kong features`，把要尝试的完整提交 SHA 填入 `commit`，工作流会创建候选 Pull Request。冲突、回归和产品取舍必须在合并前人工确认。
 
