@@ -26,7 +26,7 @@ import {
   Trash2,
 } from "lucide-react";
 import EndpointSpeedTest from "./EndpointSpeedTest";
-import { ApiKeySection, EndpointField, ModelDropdown } from "./shared";
+import { ApiKeySection, EndpointField, SearchableModelPicker } from "./shared";
 import { XaiOAuthSection } from "./XaiOAuthSection";
 import {
   fetchModelsForConfig,
@@ -581,8 +581,9 @@ export function CodexFormFields({
               )}
             </Button>
             {defaultModelSuggestions.length > 0 && (
-              <ModelDropdown
+              <SearchableModelPicker
                 models={defaultModelSuggestions}
+                value={codexModel}
                 onSelect={(id) => onModelChange(id)}
               />
             )}
@@ -1006,8 +1007,9 @@ export function CodexFormFields({
                             className="flex-1"
                           />
                           {fetchedModels.length > 0 && (
-                            <ModelDropdown
+                            <SearchableModelPicker
                               models={fetchedModels}
+                              value={row.model}
                               onSelect={(id) =>
                                 handleUpdateCatalogRow(index, {
                                   model: id,
