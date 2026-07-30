@@ -267,9 +267,7 @@ impl From<std::io::Error> for CopilotAuthError {
     }
 }
 
-fn client_for_upstream_proxy(
-    proxy_url: Option<&str>,
-) -> Result<reqwest::Client, CopilotAuthError> {
+fn client_for_upstream_proxy(proxy_url: Option<&str>) -> Result<reqwest::Client, CopilotAuthError> {
     crate::proxy::http_client::client_for_provider_upstream_proxy(proxy_url)
         .map(|client| client.unwrap_or_else(crate::proxy::http_client::get))
         .map_err(CopilotAuthError::NetworkError)
@@ -653,7 +651,8 @@ impl CopilotAuthManager {
         device_code: &str,
         github_domain: Option<&str>,
     ) -> Result<Option<GitHubAccount>, CopilotAuthError> {
-        self.poll_for_token_with_proxy(device_code, github_domain, None).await
+        self.poll_for_token_with_proxy(device_code, github_domain, None)
+            .await
     }
 
     pub async fn poll_for_token_with_proxy(

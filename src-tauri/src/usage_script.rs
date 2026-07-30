@@ -228,17 +228,16 @@ async fn send_http_request(
     provider_upstream_proxy_url: Option<&str>,
 ) -> Result<String, AppError> {
     // 有供应商专属上游代理时优先使用；没有时保留原来的全局客户端行为。
-    let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
-        provider_upstream_proxy_url,
-    )
-    .map_err(|e| {
-        AppError::localized(
-            "usage_script.proxy_config_invalid",
-            format!("代理配置错误: {e}"),
-            format!("Invalid proxy config: {e}"),
-        )
-    })?
-    .unwrap_or_else(crate::proxy::http_client::get);
+    let client =
+        crate::proxy::http_client::client_for_provider_upstream_proxy(provider_upstream_proxy_url)
+            .map_err(|e| {
+                AppError::localized(
+                    "usage_script.proxy_config_invalid",
+                    format!("代理配置错误: {e}"),
+                    format!("Invalid proxy config: {e}"),
+                )
+            })?
+            .unwrap_or_else(crate::proxy::http_client::get);
     // 约束超时范围，防止异常配置导致长时间阻塞（最小 2 秒，最大 30 秒）
     let request_timeout = std::time::Duration::from_secs(timeout_secs.clamp(2, 30));
 

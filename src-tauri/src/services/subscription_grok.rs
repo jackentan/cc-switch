@@ -563,10 +563,9 @@ pub(crate) async fn query_grok_quota_with_proxy(
     relogin_hint: &str,
     provider_upstream_proxy_url: Option<&str>,
 ) -> Result<SubscriptionQuota, String> {
-    let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
-        provider_upstream_proxy_url,
-    )?
-    .unwrap_or_else(crate::proxy::http_client::get);
+    let client =
+        crate::proxy::http_client::client_for_provider_upstream_proxy(provider_upstream_proxy_url)?
+            .unwrap_or_else(crate::proxy::http_client::get);
 
     // 空 gRPC-web 帧：1 字节 flags + 4 字节大端长度 0
     let resp = client

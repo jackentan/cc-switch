@@ -573,7 +573,8 @@ impl XaiOAuthManager {
         &self,
         refresh_token: &str,
     ) -> Result<OAuthTokenResponse, XaiOAuthError> {
-        self.refresh_with_token_with_proxy(refresh_token, None).await
+        self.refresh_with_token_with_proxy(refresh_token, None)
+            .await
     }
 
     async fn refresh_with_token_with_proxy(

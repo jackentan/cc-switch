@@ -143,10 +143,9 @@ impl StreamCheckService {
             None => Self::resolve_base_url(app_type, provider)?,
         };
 
-        let provider_upstream_proxy_url = crate::proxy::http_client::provider_upstream_proxy_url(
-            provider,
-        )
-        .map_err(AppError::Message)?;
+        let provider_upstream_proxy_url =
+            crate::proxy::http_client::provider_upstream_proxy_url(provider)
+                .map_err(AppError::Message)?;
         let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
             provider_upstream_proxy_url.as_deref(),
         )

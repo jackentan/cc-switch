@@ -100,9 +100,7 @@ impl From<std::io::Error> for CodexOAuthError {
     }
 }
 
-fn client_for_upstream_proxy(
-    proxy_url: Option<&str>,
-) -> Result<reqwest::Client, CodexOAuthError> {
+fn client_for_upstream_proxy(proxy_url: Option<&str>) -> Result<reqwest::Client, CodexOAuthError> {
     crate::proxy::http_client::client_for_provider_upstream_proxy(proxy_url)
         .map(|client| client.unwrap_or_else(crate::proxy::http_client::get))
         .map_err(CodexOAuthError::NetworkError)
@@ -491,7 +489,8 @@ impl CodexOAuthManager {
         &self,
         refresh_token: &str,
     ) -> Result<OAuthTokenResponse, CodexOAuthError> {
-        self.refresh_with_token_with_proxy(refresh_token, None).await
+        self.refresh_with_token_with_proxy(refresh_token, None)
+            .await
     }
 
     async fn refresh_with_token_with_proxy(
