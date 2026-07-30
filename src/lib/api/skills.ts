@@ -143,6 +143,11 @@ export const skillsApi = {
     return await invoke("get_installed_skills");
   },
 
+  /** 打开已安装 Skill 的本地目录 */
+  async openInstalledFolder(id: string): Promise<boolean> {
+    return await invoke("open_installed_skill_folder", { id });
+  },
+
   /** 获取可恢复的 Skill 备份列表 */
   async getBackups(): Promise<SkillBackupEntry[]> {
     return await invoke("get_skill_backups");
