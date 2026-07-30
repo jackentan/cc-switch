@@ -82,10 +82,9 @@ pub async fn fetch_models_with_proxy(
     }
 
     let candidates = build_models_url_candidates(base_url, is_full_url, models_url_override)?;
-    let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
-        provider_upstream_proxy_url,
-    )?
-    .unwrap_or_else(crate::proxy::http_client::get);
+    let client =
+        crate::proxy::http_client::client_for_provider_upstream_proxy(provider_upstream_proxy_url)?
+            .unwrap_or_else(crate::proxy::http_client::get);
     let mut last_err: Option<String> = None;
     let log_secrets = vec![api_key.to_string()];
 

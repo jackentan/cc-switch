@@ -585,7 +585,11 @@ impl ProviderMeta {
         if !config.enabled {
             return None;
         }
-        config.url.as_deref().map(str::trim).filter(|url| !url.is_empty())
+        config
+            .url
+            .as_deref()
+            .map(str::trim)
+            .filter(|url| !url.is_empty())
     }
 
     /// 解析指定托管认证供应商绑定的账号 ID。

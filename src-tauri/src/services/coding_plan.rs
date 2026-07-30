@@ -1252,8 +1252,7 @@ async fn query_zhipu_team_at(
     organization_id: &str,
     project_id: &str,
 ) -> Result<SubscriptionQuota, String> {
-    query_zhipu_team_at_with_proxy(quota_url_base, api_key, organization_id, project_id, None)
-        .await
+    query_zhipu_team_at_with_proxy(quota_url_base, api_key, organization_id, project_id, None).await
 }
 
 async fn query_zhipu_team_at_with_proxy(
@@ -1412,12 +1411,9 @@ pub async fn get_coding_plan_quota_with_proxy(
         CodingPlanProvider::MiniMaxEn => {
             query_minimax(api_key, false, provider_upstream_proxy_url).await
         }
-        CodingPlanProvider::ZenMux => query_zenmux(
-            base_url,
-            api_key,
-            provider_upstream_proxy_url,
-        )
-        .await,
+        CodingPlanProvider::ZenMux => {
+            query_zenmux(base_url, api_key, provider_upstream_proxy_url).await
+        }
         // 火山已在上面的 AK/SK 分支提前返回，此处不可达。
         CodingPlanProvider::Volcengine => {
             unreachable!("volcengine handled via AK/SK branch above")

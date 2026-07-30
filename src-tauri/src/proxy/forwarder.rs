@@ -1178,8 +1178,8 @@ impl RequestForwarder {
             super::providers::apply_codex_upstream_model(provider, &mut mapped_body);
         }
 
-        let provider_upstream_proxy_url =
-            super::http_client::provider_upstream_proxy_url(provider).map_err(ProxyError::ConfigError)?;
+        let provider_upstream_proxy_url = super::http_client::provider_upstream_proxy_url(provider)
+            .map_err(ProxyError::ConfigError)?;
 
         if is_copilot {
             mapped_body =
@@ -2604,11 +2604,7 @@ impl RequestForwarder {
         let model = body.get("model").and_then(|value| value.as_str());
         if let Some(model_id) = model {
             if self
-                .is_copilot_openai_vendor_model(
-                    provider,
-                    model_id,
-                    provider_upstream_proxy_url,
-                )
+                .is_copilot_openai_vendor_model(provider, model_id, provider_upstream_proxy_url)
                 .await
             {
                 return "openai_responses".to_string();

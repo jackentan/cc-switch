@@ -73,10 +73,7 @@ impl SpeedtestService {
         }
 
         let timeout = Self::sanitize_timeout(timeout_secs);
-        let (client, request_timeout) = Self::build_client(
-            timeout,
-            provider_upstream_proxy_url,
-        )?;
+        let (client, request_timeout) = Self::build_client(timeout, provider_upstream_proxy_url)?;
 
         let tasks = valid_targets.into_iter().map(|(idx, trimmed, parsed_url)| {
             let client = client.clone();

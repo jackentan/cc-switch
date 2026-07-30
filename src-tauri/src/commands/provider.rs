@@ -813,13 +813,9 @@ pub async fn test_api_endpoints(
     #[allow(non_snake_case)] timeoutSecs: Option<u64>,
     #[allow(non_snake_case)] upstreamProxyUrl: Option<String>,
 ) -> Result<Vec<EndpointLatency>, String> {
-    SpeedtestService::test_endpoints_with_proxy(
-        urls,
-        timeoutSecs,
-        upstreamProxyUrl.as_deref(),
-    )
-    .await
-    .map_err(|e| e.to_string())
+    SpeedtestService::test_endpoints_with_proxy(urls, timeoutSecs, upstreamProxyUrl.as_deref())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
