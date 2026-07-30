@@ -4,7 +4,7 @@
 
 ### Der All-in-One-Manager für Claude Code, Claude Desktop, Codex, Gemini CLI, Grok Build, OpenCode, OpenClaw & Hermes Agent
 
-[![Version](https://img.shields.io/badge/version-3.16.2--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.19.0--fork.2-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
@@ -18,7 +18,7 @@
 
 </div>
 
-Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.16.2` und behält die persönlichen Änderungen dieses Forks bei.
+Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.19.0` und behält die persönlichen Änderungen dieses Forks bei.
 
 **Dies ist ein persönlicher Fork mit Fokus auf praktische Nutzung.** Einige hinzugefügte oder geänderte Funktionen wurden nicht vollständig getestet, daher können **Fehler oder Inkompatibilitäten mit upstream** auftreten. Wenn Sie die sicherste Variante möchten, verwenden Sie die [offizielle Version](https://github.com/farion1231/cc-switch).
 
@@ -29,12 +29,15 @@ Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-
 | Aktuelle Konfiguration ansehen | Provider-Karten zeigen hauptsächlich den Providernamen | Zeigt das aktuelle Modell neben dem Providernamen; Claude-Rollenmodelle werden nach Möglichkeit kurz dargestellt |
 | Modelle auswählen | Lange Modelllisten werden hauptsächlich per Scrollen durchsucht | Nach dem Abrufen der Modelle können Sie suchen, nach Provider gruppiert ansehen und das ausgewählte Modell erkennen |
 | Normales Codex-Modell | In Konfigurationen ohne lokales Routing ist das Modellfeld weniger sichtbar | Ohne lokales Routing können Sie den Modellnamen direkt eingeben oder abrufen und in die Codex-Konfiguration schreiben |
+| Anbieter-spezifischer Upstream-Proxy | Es gilt nur der globale Upstream-Proxy im bisherigen Ablauf | Ein ausgewählter Anbieter/Kanal kann einen eigenen Upstream-Proxy nutzen; nach dem Aktivieren betrifft er nur diesen Anbieter, dessen Upstream-Anfragen darüber laufen, und er hat Vorrang vor dem globalen Upstream-Proxy |
 | Neuer Provider | Wird am Ende hinzugefügt | Wird bei vorhandenen Providern an zweiter Stelle eingefügt, damit er schneller aktiviert oder sortiert werden kann |
 | Provider-Reihenfolge | Hauptsächlich per Drag-and-drop | Drag-and-drop bleibt erhalten, zusätzlich gibt es per Rechtsklick Verschieben nach oben / unten |
 | Tray-Bedienung | Linksklick öffnet eher das Tray-Menü | Linksklick auf das Tray-Symbol zeigt / versteckt das Hauptfenster |
 | Modelltest | Standard-Testprompt ist relativ einfach | Nutzt mehrere leichte Prompts und wählt pro Test zufällig einen aus; eigene Eingabe mit einem Prompt pro Zeile wird unterstützt |
 | Aktualisierung | Nutzt die automatische Update-Kette von upstream | Prüft die Releases dieses Forks, öffnet die Release-Seite und lässt den Nutzer manuell herunterladen |
 | Veröffentlichungsquelle | Releases des offiziellen Repos | Installer werden in den Releases dieses Forks veröffentlicht |
+
+> Hinweis: Ein anbieter-spezifischer Upstream-Proxy greift nur, nachdem der Traffic zuerst in den lokalen Proxy von CC Switch gelangt ist. Ist dieser Proxy falsch konfiguriert oder nicht verfügbar, schlagen die Anfragen fehl, statt still auf den globalen Upstream-Proxy zurückzufallen.
 
 
 ## ❤️Sponsoren
@@ -244,7 +247,7 @@ Modernes KI-gestütztes Programmieren stützt sich auf Werkzeuge wie Claude Code
 
 ## Funktionen
 
-[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.16.2-en.md)
+[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.19.0-en.md)
 
 ### Anbieterverwaltung
 
@@ -256,6 +259,7 @@ Modernes KI-gestütztes Programmieren stützt sich auf Werkzeuge wie Claude Code
 
 - **Lokaler Proxy mit Hot-Switching** — Formatkonvertierung, automatisches Failover, Circuit Breaker, Anbieter-Health-Monitoring und Request-Rectifier
 - **Übernahme auf App-Ebene** — Claude, Codex, Gemini oder Grok Build unabhängig über den Proxy leiten, bis hinunter auf einzelne Anbieter
+- **Anbieter-spezifischer Upstream-Proxy** — Nachdem Traffic in den lokalen Proxy gelangt, kann ein ausgewählter Anbieter seinen eigenen Upstream-Proxy nutzen; bei Fehlkonfiguration fällt er nicht still auf den globalen Proxy zurück
 
 ### MCP, Prompts & Skills
 

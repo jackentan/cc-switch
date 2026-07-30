@@ -875,6 +875,7 @@ impl CopilotAuthManager {
         Ok(models)
     }
 
+    #[allow(dead_code)]
     async fn fetch_models_for_account_uncached(
         &self,
         account_id: &str,
@@ -1172,6 +1173,7 @@ impl CopilotAuthManager {
         }
     }
 
+    #[allow(dead_code)]
     async fn fetch_and_cache_endpoint(&self, account_id: &str) -> Result<String, CopilotAuthError> {
         self.fetch_and_cache_endpoint_with_proxy(account_id, None)
             .await

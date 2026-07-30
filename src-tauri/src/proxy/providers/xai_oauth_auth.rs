@@ -529,6 +529,7 @@ impl XaiOAuthManager {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn discover_endpoints(&self) -> Result<OAuthEndpoints, XaiOAuthError> {
         self.discover_endpoints_with_proxy(None).await
     }
@@ -569,6 +570,7 @@ impl XaiOAuthManager {
         Ok(endpoints)
     }
 
+    #[allow(dead_code)]
     async fn refresh_with_token(
         &self,
         refresh_token: &str,

@@ -4,7 +4,7 @@
 
 ### Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw 和 Hermes Agent 的全方位管理工具
 
-[![Version](https://img.shields.io/badge/version-3.19.0--fork.1-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.19.0--fork.2-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 [![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
@@ -29,12 +29,15 @@
 | 看当前配置 | 供应商卡片主要显示名称 | 供应商名称旁直接显示当前模型名，Claude 多角色模型会尽量收成短标签 |
 | 选择模型 | 长模型列表主要靠滚动查找 | 获取模型后可搜索、按供应商分组，并高亮当前选中的模型 |
 | Codex 普通模型 | 非本地路由配置里模型入口较弱 | 非本地路由时可直接填写或获取模型名，并写入 Codex 配置 |
+| 供应商专属上游代理 | 只有全局上游代理，按原逻辑统一生效 | 可给指定供应商/渠道单独配置上游代理；启用后只影响该供应商，访问上游都走它，并优先于全局上游代理 |
 | 新增供应商 | 新配置默认排到列表最后 | 有已有配置时，新配置默认插到第二位，方便马上启用或调整 |
 | 调整供应商顺序 | 主要靠拖拽 | 保留拖拽，并增加右键“一键置顶 / 一键置底” |
 | 托盘操作 | 左键更偏向打开托盘菜单 | 左键托盘图标直接显示 / 隐藏主窗口 |
 | 连通检测 | 仅检查供应商地址是否可达 | 跟随上游轻量连通检测，不发送真实模型请求，减少误报和额外消耗 |
 | 更新方式 | 使用上游自动更新链路 | 检查本 Fork Releases，有新版本时打开发布页，由用户手动下载 |
 | 发布来源 | 官方仓库发布 | 本 Fork 独立发布，安装包以本仓库 Releases 为准 |
+
+> 说明：供应商专属上游代理只在请求先进入 CC Switch 本地代理转发时生效；如果专属代理配置错误或不可用，请求会失败，不会悄悄回退到全局上游代理。
 
 
 ## ❤️赞助商
@@ -247,6 +250,7 @@ TeamoRouter 还提供企业级功能，包括集中账单、团队管理、BYOK�
 
 - **本地代理热切换** — 格式转换、自动故障转移、熔断器、供应商健康监控和整流器
 - **应用级代理接管** — 独立为 Claude、Codex、Gemini 或 Grok Build 配置代理，具体到单个供应商
+- **供应商专属上游代理** — 请求先进入本地代理后，可让指定供应商单独走自己的上游代理；配置错误会直接失败，不会悄悄改走全局代理
 
 ### MCP、Prompts 与 Skills
 

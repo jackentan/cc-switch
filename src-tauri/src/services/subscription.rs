@@ -346,7 +346,6 @@ fn client_for_upstream_proxy(proxy_url: Option<&str>) -> Result<reqwest::Client,
 /// 瞬时传输失败（网络/超时/读体中断）返回 `Err`（前端 reject → retry + 保留上次
 /// 成功值）；确定性失败（鉴权/非 2xx/响应体非法 JSON）返回 `Ok(success:false)`。
 /// codex/gemini 两个查询函数遵守同一约定。
-
 async fn query_claude_quota_with_proxy(
     access_token: &str,
     provider_upstream_proxy_url: Option<&str>,
@@ -995,7 +994,6 @@ const GEMINI_OAUTH_CLIENT_SECRET: &str = "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";
 ///
 /// Google OAuth access_token 仅有 ~1h 有效期，需要定期用 refresh_token 刷新。
 /// refresh_token 本身不过期（除非用户撤销授权）。
-
 async fn refresh_gemini_token_with_proxy(
     refresh_token: &str,
     provider_upstream_proxy_url: Option<&str>,
@@ -1086,7 +1084,6 @@ fn classify_gemini_model(model_id: &str) -> &str {
 /// 两步 API 调用：
 /// 1. loadCodeAssist → 获取 cloudaicompanionProject
 /// 2. retrieveUserQuota → 获取按模型分桶的配额数据
-
 async fn query_gemini_quota_with_proxy(
     access_token: &str,
     provider_upstream_proxy_url: Option<&str>,

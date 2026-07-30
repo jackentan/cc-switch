@@ -51,6 +51,7 @@ const KNOWN_COMPAT_SUFFIXES: &[&str] = &[
 /// 获取供应商的可用模型列表
 ///
 /// 使用 OpenAI 兼容的 GET /v1/models 端点，按候选列表顺序尝试。
+#[allow(dead_code)]
 pub async fn fetch_models(
     base_url: &str,
     api_key: &str,
