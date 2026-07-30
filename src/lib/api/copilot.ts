@@ -126,8 +126,12 @@ export async function copilotGetToken(): Promise<string> {
  *
  * @returns 可用模型列表
  */
-export async function copilotGetModels(): Promise<CopilotModel[]> {
-  return invoke<CopilotModel[]>("copilot_get_models");
+export async function copilotGetModels(
+  upstreamProxyUrl?: string,
+): Promise<CopilotModel[]> {
+  return invoke<CopilotModel[]>("copilot_get_models", {
+    upstreamProxyUrl,
+  });
 }
 
 /**
@@ -237,9 +241,11 @@ export async function copilotGetTokenForAccount(
  */
 export async function copilotGetModelsForAccount(
   accountId: string,
+  upstreamProxyUrl?: string,
 ): Promise<CopilotModel[]> {
   return invoke<CopilotModel[]>("copilot_get_models_for_account", {
     accountId,
+    upstreamProxyUrl,
   });
 }
 

@@ -168,6 +168,11 @@ export interface LocalProxyRequestOverrides {
   body?: Record<string, unknown>;
 }
 
+export interface ProviderUpstreamProxyConfig {
+  enabled?: boolean;
+  url?: string;
+}
+
 // 供应商元数据（字段名与后端一致，保持 snake_case）
 export interface ProviderMeta {
   // 自定义端点：以 URL 为键，值为端点信息
@@ -227,6 +232,8 @@ export interface ProviderMeta {
   customUserAgent?: string;
   // Local proxy request overrides. Only applied by the local proxy after route transforms.
   localProxyRequestOverrides?: LocalProxyRequestOverrides;
+  // Dedicated upstream proxy for this provider. Only applied by the local proxy.
+  upstreamProxy?: ProviderUpstreamProxyConfig;
   // 供应商类型（用于识别 Copilot 等特殊供应商）
   providerType?: string;
   // GitHub Copilot 关联账号 ID（旧字段，保留兼容读取）

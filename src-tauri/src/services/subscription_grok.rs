@@ -554,7 +554,19 @@ pub(crate) async fn query_grok_quota(
     tool_label: &str,
     relogin_hint: &str,
 ) -> Result<SubscriptionQuota, String> {
-    let client = crate::proxy::http_client::get();
+    query_grok_quota_with_proxy(access_token, tool_label, relogin_hint, None).await
+}
+
+pub(crate) async fn query_grok_quota_with_proxy(
+    access_token: &str,
+    tool_label: &str,
+    relogin_hint: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
+    let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
+        provider_upstream_proxy_url,
+    )?
+    .unwrap_or_else(crate::proxy::http_client::get);
 
     // 空 gRPC-web 帧：1 字节 flags + 4 字节大端长度 0
     let resp = client
@@ -680,6 +692,12 @@ pub(crate) async fn query_grok_quota(
 
 /// grokbuild 的订阅额度入口（由 `subscription::get_subscription_quota` 分发）
 pub(crate) async fn get_grok_subscription_quota() -> Result<SubscriptionQuota, String> {
+    get_grok_subscription_quota_with_proxy(None).await
+}
+
+pub(crate) async fn get_grok_subscription_quota_with_proxy(
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
     let (token, status, message) = read_grok_credentials();
 
     match status {
@@ -692,7 +710,13 @@ pub(crate) async fn get_grok_subscription_quota() -> Result<SubscriptionQuota, S
         CredentialStatus::Expired => {
             // 即使过期也尝试调用 API（时钟偏差时 token 可能仍有效）
             if let Some(ref token) = token {
-                let result = query_grok_quota(token, "grokbuild", RELOGIN_HINT).await?;
+                let result = query_grok_quota_with_proxy(
+                    token,
+                    "grokbuild",
+                    RELOGIN_HINT,
+                    provider_upstream_proxy_url,
+                )
+                .await?;
                 if result.success {
                     return Ok(result);
                 }
@@ -708,7 +732,13 @@ pub(crate) async fn get_grok_subscription_quota() -> Result<SubscriptionQuota, S
         }
         CredentialStatus::Valid => {
             let token = token.expect("token must be Some when status is Valid");
-            query_grok_quota(&token, "grokbuild", RELOGIN_HINT).await
+            query_grok_quota_with_proxy(
+                &token,
+                "grokbuild",
+                RELOGIN_HINT,
+                provider_upstream_proxy_url,
+            )
+            .await
         }
     }
 }

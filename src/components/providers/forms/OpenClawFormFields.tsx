@@ -60,6 +60,7 @@ interface OpenClawFormFieldsProps {
   // User-Agent
   userAgent: boolean;
   onUserAgentChange: (checked: boolean) => void;
+  upstreamProxyUrl?: string;
 }
 
 export function OpenClawFormFields({
@@ -78,6 +79,7 @@ export function OpenClawFormFields({
   onModelsChange,
   userAgent,
   onUserAgentChange,
+  upstreamProxyUrl,
 }: OpenClawFormFieldsProps) {
   const { t } = useTranslation();
   const [expandedModels, setExpandedModels] = useState<Record<number, boolean>>(
@@ -132,7 +134,14 @@ export function OpenClawFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         if (models.length === 0) {
@@ -148,7 +157,7 @@ export function OpenClawFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   // Remove a model entry
   const handleRemoveModel = (index: number) => {

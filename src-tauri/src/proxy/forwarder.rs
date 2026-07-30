@@ -1178,11 +1178,18 @@ impl RequestForwarder {
             super::providers::apply_codex_upstream_model(provider, &mut mapped_body);
         }
 
+        let provider_upstream_proxy_url =
+            super::http_client::provider_upstream_proxy_url(provider).map_err(ProxyError::ConfigError)?;
+
         if is_copilot {
             mapped_body =
                 super::providers::copilot_model_map::apply_copilot_model_normalization(mapped_body);
-            self.apply_copilot_live_model_resolution(provider, &mut mapped_body)
-                .await;
+            self.apply_copilot_live_model_resolution(
+                provider,
+                &mut mapped_body,
+                provider_upstream_proxy_url.as_deref(),
+            )
+            .await;
         } else if !codex_responses_to_anthropic {
             // Skip on the Codex→Anthropic path: stripping [1m] here would break both the
             // model-catalog match (apply_codex_upstream_model) and the transform's own
@@ -1308,8 +1315,18 @@ impl RequestForwarder {
                     .and_then(|m| m.managed_account_id_for("github_copilot"));
 
                 let dynamic_endpoint = match &account_id {
-                    Some(id) => copilot_auth.get_api_endpoint(id).await,
-                    None => copilot_auth.get_default_api_endpoint().await,
+                    Some(id) => {
+                        copilot_auth
+                            .get_api_endpoint_with_proxy(id, provider_upstream_proxy_url.as_deref())
+                            .await
+                    }
+                    None => {
+                        copilot_auth
+                            .get_default_api_endpoint_with_proxy(
+                                provider_upstream_proxy_url.as_deref(),
+                            )
+                            .await
+                    }
                 };
 
                 // 只在动态 endpoint 与当前 base_url 不同时替换
@@ -1325,8 +1342,13 @@ impl RequestForwarder {
         }
         let resolved_claude_api_format = if adapter.name() == "Claude" {
             Some(
-                self.resolve_claude_api_format(provider, &mapped_body, is_copilot)
-                    .await,
+                self.resolve_claude_api_format(
+                    provider,
+                    &mapped_body,
+                    is_copilot,
+                    provider_upstream_proxy_url.as_deref(),
+                )
+                .await,
             )
         } else {
             None
@@ -1629,11 +1651,18 @@ impl RequestForwarder {
                     let token_result = match &account_id {
                         Some(id) => {
                             log::debug!("[Copilot] 使用指定账号 {id} 获取 token");
-                            copilot_auth.get_valid_token_for_account(id).await
+                            copilot_auth
+                                .get_valid_token_for_account_with_proxy(
+                                    id,
+                                    provider_upstream_proxy_url.as_deref(),
+                                )
+                                .await
                         }
                         None => {
                             log::debug!("[Copilot] 使用默认账号获取 token");
-                            copilot_auth.get_valid_token().await
+                            copilot_auth
+                                .get_valid_token_with_proxy(provider_upstream_proxy_url.as_deref())
+                                .await
                         }
                     };
 
@@ -1679,11 +1708,18 @@ impl RequestForwarder {
                     let token_result = match &account_id {
                         Some(id) => {
                             log::debug!("[CodexOAuth] 使用指定账号 {id} 获取 token");
-                            codex_auth.get_valid_token_for_account(id).await
+                            codex_auth
+                                .get_valid_token_for_account_with_proxy(
+                                    id,
+                                    provider_upstream_proxy_url.as_deref(),
+                                )
+                                .await
                         }
                         None => {
                             log::debug!("[CodexOAuth] 使用默认账号获取 token");
-                            codex_auth.get_valid_token().await
+                            codex_auth
+                                .get_valid_token_with_proxy(provider_upstream_proxy_url.as_deref())
+                                .await
                         }
                     };
 
@@ -1729,8 +1765,19 @@ impl RequestForwarder {
                         .as_ref()
                         .and_then(|meta| meta.managed_account_id_for("xai_oauth"));
                     let token_result = match &account_id {
-                        Some(id) => xai_auth.get_valid_token_for_account(id).await,
-                        None => xai_auth.get_valid_token().await,
+                        Some(id) => {
+                            xai_auth
+                                .get_valid_token_for_account_with_proxy(
+                                    id,
+                                    provider_upstream_proxy_url.as_deref(),
+                                )
+                                .await
+                        }
+                        None => {
+                            xai_auth
+                                .get_valid_token_with_proxy(provider_upstream_proxy_url.as_deref())
+                                .await
+                        }
                     };
                     match token_result {
                         Ok(token) => {
@@ -2176,13 +2223,26 @@ impl RequestForwarder {
             crate::redact_url_for_log_with_secrets(&url, &log_secrets)
         };
 
+        let upstream_proxy_url: Option<String> = provider_upstream_proxy_url
+            .clone()
+            .or_else(super::http_client::get_current_proxy_url);
+        let upstream_proxy_for_log = match upstream_proxy_url.as_deref() {
+            Some(url) if provider_upstream_proxy_url.is_some() => {
+                format!("provider:{}", super::http_client::mask_url(url))
+            }
+            Some(url) => format!("global:{}", super::http_client::mask_url(url)),
+            None => "direct".to_string(),
+        };
+
         // 输出请求信息日志
         let tag = adapter.name();
         let request_model = filtered_body
             .get("model")
             .and_then(|v| v.as_str())
             .unwrap_or("<none>");
-        log::info!("[{tag}] >>> 请求目标: {target_for_log} (model={request_model})");
+        log::info!(
+            "[{tag}] >>> 请求目标: {target_for_log} (model={request_model}, proxy={upstream_proxy_for_log})"
+        );
         log::debug!(
             "[{tag}] >>> 请求体已准备: bytes={}, hash={} (content omitted)",
             body_bytes.len(),
@@ -2195,9 +2255,6 @@ impl RequestForwarder {
         } else {
             self.non_streaming_timeout
         };
-
-        // 获取全局代理 URL
-        let upstream_proxy_url: Option<String> = super::http_client::get_current_proxy_url();
 
         // SOCKS5 代理不支持 CONNECT 隧道，需要用 reqwest
         let is_socks_proxy = upstream_proxy_url
@@ -2219,7 +2276,12 @@ impl RequestForwarder {
             log::debug!(
                 "[Forwarder] Using pooled reqwest client (preserve_exact_header_case={preserve_exact_header_case}, socks_proxy={is_socks_proxy})"
             );
-            let client = super::http_client::get();
+            let client = if provider_upstream_proxy_url.is_some() {
+                super::http_client::client_for_proxy_url(upstream_proxy_url.as_deref())
+                    .map_err(ProxyError::ConfigError)?
+            } else {
+                super::http_client::get()
+            };
             let mut request = client.request(method.clone(), &url);
             if request_is_streaming {
                 // reqwest 的 timeout 是整请求超时；流式请求交给 response_processor
@@ -2533,6 +2595,7 @@ impl RequestForwarder {
         provider: &Provider,
         body: &Value,
         is_copilot: bool,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> String {
         if !is_copilot {
             return super::providers::get_claude_api_format(provider).to_string();
@@ -2541,7 +2604,11 @@ impl RequestForwarder {
         let model = body.get("model").and_then(|value| value.as_str());
         if let Some(model_id) = model {
             if self
-                .is_copilot_openai_vendor_model(provider, model_id)
+                .is_copilot_openai_vendor_model(
+                    provider,
+                    model_id,
+                    provider_upstream_proxy_url,
+                )
                 .await
             {
                 return "openai_responses".to_string();
@@ -2557,6 +2624,7 @@ impl RequestForwarder {
         &self,
         provider: &Provider,
         body: &mut serde_json::Value,
+        provider_upstream_proxy_url: Option<&str>,
     ) {
         let Some(model_id) = body.get("model").and_then(|v| v.as_str()) else {
             return;
@@ -2574,8 +2642,16 @@ impl RequestForwarder {
             .and_then(|m| m.managed_account_id_for("github_copilot"));
 
         let models_result = match account_id.as_deref() {
-            Some(id) => copilot_auth.fetch_models_for_account(id).await,
-            None => copilot_auth.fetch_models().await,
+            Some(id) => {
+                copilot_auth
+                    .fetch_models_for_account_with_proxy(id, provider_upstream_proxy_url)
+                    .await
+            }
+            None => {
+                copilot_auth
+                    .fetch_models_with_proxy(provider_upstream_proxy_url)
+                    .await
+            }
         };
 
         let models = match models_result {
@@ -2594,7 +2670,12 @@ impl RequestForwarder {
         }
     }
 
-    async fn is_copilot_openai_vendor_model(&self, provider: &Provider, model_id: &str) -> bool {
+    async fn is_copilot_openai_vendor_model(
+        &self,
+        provider: &Provider,
+        model_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> bool {
         let Some(app_handle) = &self.app_handle else {
             log::debug!("[Copilot] AppHandle unavailable, fallback to chat/completions");
             return false;
@@ -2610,10 +2691,18 @@ impl RequestForwarder {
         let vendor_result = match account_id.as_deref() {
             Some(id) => {
                 copilot_auth
-                    .get_model_vendor_for_account(id, model_id)
+                    .get_model_vendor_for_account_with_proxy(
+                        id,
+                        model_id,
+                        provider_upstream_proxy_url,
+                    )
                     .await
             }
-            None => copilot_auth.get_model_vendor(model_id).await,
+            None => {
+                copilot_auth
+                    .get_model_vendor_with_proxy(model_id, provider_upstream_proxy_url)
+                    .await
+            }
         };
 
         match vendor_result {

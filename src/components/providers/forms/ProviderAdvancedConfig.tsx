@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ProviderUpstreamProxyField } from "./ProviderUpstreamProxyField";
+import type { ProviderUpstreamProxyFormConfig } from "@/lib/providerUpstreamProxy";
+
 export type PricingModelSourceOption = "inherit" | "request" | "response";
 
 interface ProviderPricingConfig {
@@ -23,11 +26,17 @@ interface ProviderPricingConfig {
 interface ProviderAdvancedConfigProps {
   pricingConfig: ProviderPricingConfig;
   onPricingConfigChange: (config: ProviderPricingConfig) => void;
+  upstreamProxyConfig?: ProviderUpstreamProxyFormConfig;
+  onUpstreamProxyConfigChange?: (
+    config: ProviderUpstreamProxyFormConfig,
+  ) => void;
 }
 
 export function ProviderAdvancedConfig({
   pricingConfig,
   onPricingConfigChange,
+  upstreamProxyConfig,
+  onUpstreamProxyConfigChange,
 }: ProviderAdvancedConfigProps) {
   const { t } = useTranslation();
   const [isPricingConfigOpen, setIsPricingConfigOpen] = useState(
@@ -40,6 +49,16 @@ export function ProviderAdvancedConfig({
 
   return (
     <div className="space-y-4">
+      {upstreamProxyConfig && onUpstreamProxyConfigChange && (
+        <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+          <ProviderUpstreamProxyField
+            id="provider-upstream-proxy"
+            config={upstreamProxyConfig}
+            onChange={onUpstreamProxyConfigChange}
+          />
+        </div>
+      )}
+
       {/* 计费配置 */}
       <div className="rounded-lg border border-border/50 bg-muted/20">
         <button

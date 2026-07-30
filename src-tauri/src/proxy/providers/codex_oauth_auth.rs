@@ -100,6 +100,14 @@ impl From<std::io::Error> for CodexOAuthError {
     }
 }
 
+fn client_for_upstream_proxy(
+    proxy_url: Option<&str>,
+) -> Result<reqwest::Client, CodexOAuthError> {
+    crate::proxy::http_client::client_for_provider_upstream_proxy(proxy_url)
+        .map(|client| client.unwrap_or_else(crate::proxy::http_client::get))
+        .map_err(CodexOAuthError::NetworkError)
+}
+
 /// OpenAI Device Code 响应
 #[derive(Debug, Clone, Deserialize)]
 struct DeviceCodeResponse {
@@ -262,9 +270,17 @@ impl CodexOAuthManager {
     /// - user_code = user_code
     /// - verification_uri = https://auth.openai.com/codex/device
     pub async fn start_device_flow(&self) -> Result<GitHubDeviceCodeResponse, CodexOAuthError> {
+        self.start_device_flow_with_proxy(None).await
+    }
+
+    pub async fn start_device_flow_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<GitHubDeviceCodeResponse, CodexOAuthError> {
         log::info!("[CodexOAuth] 启动 Device Code 流程");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .post(DEVICE_AUTH_USERCODE_URL)
             .header("Content-Type", "application/json")
             .header("User-Agent", CODEX_USER_AGENT)
@@ -325,6 +341,14 @@ impl CodexOAuthManager {
         &self,
         device_code: &str,
     ) -> Result<Option<GitHubAccount>, CodexOAuthError> {
+        self.poll_for_token_with_proxy(device_code, None).await
+    }
+
+    pub async fn poll_for_token_with_proxy(
+        &self,
+        device_code: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Option<GitHubAccount>, CodexOAuthError> {
         let entry = {
             let pending = self.pending_device_codes.read().await;
             pending.get(device_code).cloned()
@@ -346,7 +370,8 @@ impl CodexOAuthManager {
 
         log::debug!("[CodexOAuth] 轮询 Device Code");
 
-        let poll_response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let poll_response = client
             .post(DEVICE_AUTH_TOKEN_URL)
             .header("Content-Type", "application/json")
             .header("User-Agent", CODEX_USER_AGENT)
@@ -384,7 +409,11 @@ impl CodexOAuthManager {
 
         // 用 authorization_code + code_verifier 换 token
         let tokens = self
-            .exchange_code_for_tokens(&success.authorization_code, &success.code_verifier)
+            .exchange_code_for_tokens(
+                &success.authorization_code,
+                &success.code_verifier,
+                provider_upstream_proxy_url,
+            )
             .await?;
 
         // 清理 pending device code
@@ -426,8 +455,10 @@ impl CodexOAuthManager {
         &self,
         code: &str,
         code_verifier: &str,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> Result<OAuthTokenResponse, CodexOAuthError> {
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .post(OAUTH_TOKEN_URL)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("User-Agent", CODEX_USER_AGENT)
@@ -460,7 +491,16 @@ impl CodexOAuthManager {
         &self,
         refresh_token: &str,
     ) -> Result<OAuthTokenResponse, CodexOAuthError> {
-        let response = crate::proxy::http_client::get()
+        self.refresh_with_token_with_proxy(refresh_token, None).await
+    }
+
+    async fn refresh_with_token_with_proxy(
+        &self,
+        refresh_token: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<OAuthTokenResponse, CodexOAuthError> {
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .post(OAUTH_TOKEN_URL)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("User-Agent", CODEX_USER_AGENT)
@@ -498,6 +538,15 @@ impl CodexOAuthManager {
         &self,
         account_id: &str,
     ) -> Result<String, CodexOAuthError> {
+        self.get_valid_token_for_account_with_proxy(account_id, None)
+            .await
+    }
+
+    pub async fn get_valid_token_for_account_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<String, CodexOAuthError> {
         // 先检查缓存
         {
             let tokens = self.access_tokens.read().await;
@@ -531,7 +580,9 @@ impl CodexOAuthManager {
                 .ok_or_else(|| CodexOAuthError::AccountNotFound(account_id.to_string()))?
         };
 
-        let new_tokens = self.refresh_with_token(&refresh_token).await?;
+        let new_tokens = self
+            .refresh_with_token_with_proxy(&refresh_token, provider_upstream_proxy_url)
+            .await?;
 
         // 如果服务端返回了新的 refresh_token，更新存储
         if let Some(new_refresh) = new_tokens.refresh_token.clone() {
@@ -564,14 +615,23 @@ impl CodexOAuthManager {
 
     /// 获取默认账号的有效 token
     pub async fn get_valid_token(&self) -> Result<String, CodexOAuthError> {
+        self.get_valid_token_with_proxy(None).await
+    }
+
+    pub async fn get_valid_token_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<String, CodexOAuthError> {
         match self.resolve_default_account_id().await {
-            Some(id) => self.get_valid_token_for_account(&id).await,
+            Some(id) => {
+                self.get_valid_token_for_account_with_proxy(&id, provider_upstream_proxy_url)
+                    .await
+            }
             None => Err(CodexOAuthError::AccountNotFound(
                 "无可用的 ChatGPT 账号".to_string(),
             )),
         }
     }
-
     /// 获取默认账号 ID（热路径使用，避免克隆整个账号 HashMap）
     pub async fn default_account_id(&self) -> Option<String> {
         self.resolve_default_account_id().await

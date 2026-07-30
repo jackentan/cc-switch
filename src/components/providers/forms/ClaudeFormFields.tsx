@@ -119,6 +119,7 @@ interface ClaudeFormFieldsProps {
   autoSelect: boolean;
   onAutoSelectChange: (checked: boolean) => void;
   showEndpointTools?: boolean;
+  upstreamProxyUrl?: string;
 
   // Model Selector
   shouldShowModelSelector: boolean;
@@ -196,6 +197,7 @@ export function ClaudeFormFields({
   autoSelect,
   onAutoSelectChange,
   showEndpointTools = true,
+  upstreamProxyUrl,
   shouldShowModelSelector,
   claudeModel,
   defaultHaikuModel,
@@ -298,7 +300,14 @@ export function ClaudeFormFields({
     const modelsUrl = matchedPreset?.modelsUrl;
 
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey, isFullUrl, modelsUrl, customUserAgent)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      isFullUrl,
+      modelsUrl,
+      customUserAgent,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         showModelFetchResult(models.length);
@@ -308,7 +317,15 @@ export function ClaudeFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, isFullUrl, customUserAgent, showModelFetchResult, t]);
+  }, [
+    baseUrl,
+    apiKey,
+    isFullUrl,
+    customUserAgent,
+    upstreamProxyUrl,
+    showModelFetchResult,
+    t,
+  ]);
 
   const handleFetchCopilotModels = useCallback(() => {
     if (!isCopilotAuthenticated) {
@@ -324,8 +341,8 @@ export function ClaudeFormFields({
     copilotModelsRequestRef.current = requestId;
     setModelsLoading(true);
     const fetchModels = selectedGitHubAccountId
-      ? copilotGetModelsForAccount(selectedGitHubAccountId)
-      : copilotGetModels();
+      ? copilotGetModelsForAccount(selectedGitHubAccountId, upstreamProxyUrl)
+      : copilotGetModels(upstreamProxyUrl);
 
     fetchModels
       .then((models) => {
@@ -350,6 +367,7 @@ export function ClaudeFormFields({
   }, [
     isCopilotAuthenticated,
     selectedGitHubAccountId,
+    upstreamProxyUrl,
     showModelFetchResult,
     t,
   ]);
@@ -367,7 +385,7 @@ export function ClaudeFormFields({
     const requestId = codexOauthModelsRequestRef.current + 1;
     codexOauthModelsRequestRef.current = requestId;
     setCodexOauthModelsLoading(true);
-    fetchCodexOauthModels(selectedCodexAccountId)
+    fetchCodexOauthModels(selectedCodexAccountId, upstreamProxyUrl)
       .then((models) => {
         if (codexOauthModelsRequestRef.current !== requestId) return;
         setCodexOauthModels(models);
@@ -386,6 +404,7 @@ export function ClaudeFormFields({
   }, [
     isCodexOauthAuthenticated,
     selectedCodexAccountId,
+    upstreamProxyUrl,
     showModelFetchResult,
     t,
   ]);
@@ -403,7 +422,7 @@ export function ClaudeFormFields({
     const requestId = xaiOauthModelsRequestRef.current + 1;
     xaiOauthModelsRequestRef.current = requestId;
     setXaiOauthModelsLoading(true);
-    fetchXaiOauthModels(selectedXaiAccountId)
+    fetchXaiOauthModels(selectedXaiAccountId, upstreamProxyUrl)
       .then((models) => {
         if (xaiOauthModelsRequestRef.current !== requestId) return;
         setXaiOauthModels(models);
@@ -419,7 +438,13 @@ export function ClaudeFormFields({
           setXaiOauthModelsLoading(false);
         }
       });
-  }, [isXaiOauthAuthenticated, selectedXaiAccountId, showModelFetchResult, t]);
+  }, [
+    isXaiOauthAuthenticated,
+    selectedXaiAccountId,
+    upstreamProxyUrl,
+    showModelFetchResult,
+    t,
+  ]);
 
   useEffect(() => {
     copilotModelsRequestRef.current += 1;
@@ -652,6 +677,7 @@ export function ClaudeFormFields({
         <CopilotAuthSection
           selectedAccountId={selectedGitHubAccountId}
           onAccountSelect={onGitHubAccountSelect}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -662,6 +688,7 @@ export function ClaudeFormFields({
           onAccountSelect={onCodexAccountSelect}
           fastModeEnabled={codexFastMode}
           onFastModeChange={onCodexFastModeChange}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -669,6 +696,7 @@ export function ClaudeFormFields({
         <XaiOAuthSection
           selectedAccountId={selectedXaiAccountId}
           onAccountSelect={onXaiAccountSelect}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -757,6 +785,7 @@ export function ClaudeFormFields({
         <EndpointSpeedTest
           appId="claude"
           providerId={providerId}
+          upstreamProxyUrl={upstreamProxyUrl}
           value={baseUrl}
           onChange={onBaseUrlChange}
           initialEndpoints={speedTestEndpoints}
