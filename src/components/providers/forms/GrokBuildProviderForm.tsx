@@ -395,7 +395,8 @@ export function GrokBuildProviderForm({
       return;
     }
 
-    const upstreamProxyError = validateProviderUpstreamProxy(upstreamProxyConfig);
+    const upstreamProxyError =
+      validateProviderUpstreamProxy(upstreamProxyConfig);
     if (upstreamProxyError) {
       toast.error(upstreamProxyError);
       return;

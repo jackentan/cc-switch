@@ -12,6 +12,7 @@ const CODEX_OAUTH_FETCH_TIMEOUT_SECS: u64 = 15;
 const ERROR_BODY_MAX_CHARS: usize = 512;
 const CODEX_OAUTH_CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[allow(dead_code)]
 pub async fn fetch_models_with_token(
     token: &str,
     account_id: &str,

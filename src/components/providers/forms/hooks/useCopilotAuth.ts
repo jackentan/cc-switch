@@ -1,7 +1,10 @@
 import type { GitHubAccount } from "@/lib/api";
 import { useManagedAuth } from "./useManagedAuth";
 
-export function useCopilotAuth(githubDomain?: string, upstreamProxyUrl?: string) {
+export function useCopilotAuth(
+  githubDomain?: string,
+  upstreamProxyUrl?: string,
+) {
   const managedAuth = useManagedAuth(
     "github_copilot",
     githubDomain,

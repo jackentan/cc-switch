@@ -1246,6 +1246,7 @@ async fn query_zhipu_team(
 
 /// 团队版额度查询。`quota_url_base` 为不含 query 的 quota 端点；团队版与个人版同路径，
 /// 靠 `?type=2` 区分（在此拼上）。拆出 url 参数便于用本地 server 测试请求形状。
+#[allow(dead_code)]
 async fn query_zhipu_team_at(
     quota_url_base: &str,
     api_key: &str,
@@ -1342,6 +1343,7 @@ pub async fn get_coding_plan_quota(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn get_coding_plan_quota_with_proxy(
     base_url: &str,
     api_key: &str,

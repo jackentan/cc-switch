@@ -485,6 +485,7 @@ impl CodexOAuthManager {
     }
 
     /// 用 refresh_token 刷新 access_token
+    #[allow(dead_code)]
     async fn refresh_with_token(
         &self,
         refresh_token: &str,
