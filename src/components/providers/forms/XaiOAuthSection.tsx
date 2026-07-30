@@ -29,12 +29,14 @@ interface XaiOAuthSectionProps {
   className?: string;
   selectedAccountId?: string | null;
   onAccountSelect?: (accountId: string | null) => void;
+  upstreamProxyUrl?: string;
 }
 
 export const XaiOAuthSection: React.FC<XaiOAuthSectionProps> = ({
   className,
   selectedAccountId,
   onAccountSelect,
+  upstreamProxyUrl,
 }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
@@ -55,7 +57,7 @@ export const XaiOAuthSection: React.FC<XaiOAuthSectionProps> = ({
     setDefaultAccount,
     cancelAuth,
     logout,
-  } = useXaiOauth();
+  } = useXaiOauth(upstreamProxyUrl);
 
   const usableAccounts = accounts.filter((account) => !account.requires_reauth);
 

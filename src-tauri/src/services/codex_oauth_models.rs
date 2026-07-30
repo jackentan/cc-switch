@@ -16,7 +16,18 @@ pub async fn fetch_models_with_token(
     token: &str,
     account_id: &str,
 ) -> Result<Vec<FetchedModel>, String> {
-    let client = crate::proxy::http_client::get();
+    fetch_models_with_token_and_proxy(token, account_id, None).await
+}
+
+pub async fn fetch_models_with_token_and_proxy(
+    token: &str,
+    account_id: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<Vec<FetchedModel>, String> {
+    let client = crate::proxy::http_client::client_for_provider_upstream_proxy(
+        provider_upstream_proxy_url,
+    )?
+    .unwrap_or_else(crate::proxy::http_client::get);
     let response = client
         .get(CODEX_OAUTH_MODELS_URL)
         .query(&[("client_version", CODEX_OAUTH_CLIENT_VERSION)])

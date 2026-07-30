@@ -32,6 +32,7 @@ interface CopilotAuthSectionProps {
   selectedAccountId?: string | null;
   /** 账号选择回调 */
   onAccountSelect?: (accountId: string | null) => void;
+  upstreamProxyUrl?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ export const CopilotAuthSection: React.FC<CopilotAuthSectionProps> = ({
   className,
   selectedAccountId,
   onAccountSelect,
+  upstreamProxyUrl,
 }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
@@ -77,7 +79,7 @@ export const CopilotAuthSection: React.FC<CopilotAuthSectionProps> = ({
     setDefaultAccount,
     cancelAuth,
     logout,
-  } = useCopilotAuth(effectiveGithubDomain);
+  } = useCopilotAuth(effectiveGithubDomain, upstreamProxyUrl);
 
   // 复制用户码
   const copyUserCode = async () => {
