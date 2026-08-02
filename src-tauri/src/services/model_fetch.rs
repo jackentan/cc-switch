@@ -51,6 +51,7 @@ const KNOWN_COMPAT_SUFFIXES: &[&str] = &[
 /// 获取供应商的可用模型列表
 ///
 /// 使用 OpenAI 兼容的 GET /v1/models 端点，按候选列表顺序尝试。
+#[allow(dead_code)]
 pub async fn fetch_models(
     base_url: &str,
     api_key: &str,
@@ -58,12 +59,33 @@ pub async fn fetch_models(
     models_url_override: Option<&str>,
     user_agent: Option<HeaderValue>,
 ) -> Result<Vec<FetchedModel>, String> {
+    fetch_models_with_proxy(
+        base_url,
+        api_key,
+        is_full_url,
+        models_url_override,
+        user_agent,
+        None,
+    )
+    .await
+}
+
+pub async fn fetch_models_with_proxy(
+    base_url: &str,
+    api_key: &str,
+    is_full_url: bool,
+    models_url_override: Option<&str>,
+    user_agent: Option<HeaderValue>,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<Vec<FetchedModel>, String> {
     if api_key.is_empty() {
         return Err("API Key is required to fetch models".to_string());
     }
 
     let candidates = build_models_url_candidates(base_url, is_full_url, models_url_override)?;
-    let client = crate::proxy::http_client::get();
+    let client =
+        crate::proxy::http_client::client_for_provider_upstream_proxy(provider_upstream_proxy_url)?
+            .unwrap_or_else(crate::proxy::http_client::get);
     let mut last_err: Option<String> = None;
     let log_secrets = vec![api_key.to_string()];
 

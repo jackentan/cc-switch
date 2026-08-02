@@ -19,6 +19,7 @@ export async function fetchModelsForConfig(
   isFullUrl?: boolean,
   modelsUrl?: string,
   customUserAgent?: string,
+  upstreamProxyUrl?: string,
 ): Promise<FetchedModel[]> {
   return invoke("fetch_models_for_config", {
     baseUrl,
@@ -26,6 +27,7 @@ export async function fetchModelsForConfig(
     isFullUrl,
     modelsUrl,
     customUserAgent,
+    upstreamProxyUrl,
   });
 }
 
@@ -36,18 +38,22 @@ export async function fetchModelsForConfig(
  */
 export async function fetchCodexOauthModels(
   accountId?: string | null,
+  upstreamProxyUrl?: string,
 ): Promise<FetchedModel[]> {
   return invoke("get_codex_oauth_models", {
     accountId: accountId || null,
+    upstreamProxyUrl,
   });
 }
 
 /** 获取当前 xAI OAuth 账号可访问的模型列表。 */
 export async function fetchXaiOauthModels(
   accountId?: string | null,
+  upstreamProxyUrl?: string,
 ): Promise<FetchedModel[]> {
   return invoke("get_xai_oauth_models", {
     accountId: accountId || null,
+    upstreamProxyUrl,
   });
 }
 

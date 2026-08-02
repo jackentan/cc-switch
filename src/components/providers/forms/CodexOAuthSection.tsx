@@ -35,6 +35,7 @@ interface CodexOAuthSectionProps {
   fastModeEnabled?: boolean;
   /** FAST mode 切换回调 */
   onFastModeChange?: (enabled: boolean) => void;
+  upstreamProxyUrl?: string;
 }
 
 /**
@@ -49,6 +50,7 @@ export const CodexOAuthSection: React.FC<CodexOAuthSectionProps> = ({
   onAccountSelect,
   fastModeEnabled = false,
   onFastModeChange,
+  upstreamProxyUrl,
 }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
@@ -69,7 +71,7 @@ export const CodexOAuthSection: React.FC<CodexOAuthSectionProps> = ({
     setDefaultAccount,
     cancelAuth,
     logout,
-  } = useCodexOauth();
+  } = useCodexOauth(upstreamProxyUrl);
 
   const copyUserCode = async () => {
     if (deviceCode?.user_code) {

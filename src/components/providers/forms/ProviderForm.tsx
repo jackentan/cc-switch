@@ -12,6 +12,12 @@ import {
   buildLocalProxyRequestOverrides,
   formatRequestOverrideObject,
 } from "@/lib/requestOverrides";
+import {
+  buildProviderUpstreamProxyConfig,
+  getEnabledProviderUpstreamProxyUrl,
+  validateProviderUpstreamProxy,
+  type ProviderUpstreamProxyFormConfig,
+} from "@/lib/providerUpstreamProxy";
 import { providersApi, settingsApi, type AppId } from "@/lib/api";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import type {
@@ -86,6 +92,7 @@ import {
   ProviderAdvancedConfig,
   type PricingModelSourceOption,
 } from "./ProviderAdvancedConfig";
+import { ProviderUpstreamProxyField } from "./ProviderUpstreamProxyField";
 import {
   useProviderCategory,
   useApiKeyState,
@@ -365,6 +372,10 @@ function ProviderFormFull({
     setCodexChatReasoning(initialData?.meta?.codexChatReasoning ?? {});
     setPromptCacheRouting(initialData?.meta?.promptCacheRouting ?? "auto");
     setCustomUserAgent(initialData?.meta?.customUserAgent ?? "");
+    setUpstreamProxyConfig({
+      enabled: initialData?.meta?.upstreamProxy?.enabled === true,
+      url: initialData?.meta?.upstreamProxy?.url ?? "",
+    });
     setLocalProxyHeadersOverride(
       formatRequestOverrideObject(
         initialData?.meta?.localProxyRequestOverrides?.headers,
@@ -555,6 +566,11 @@ function ProviderFormFull({
   const [customUserAgent, setCustomUserAgent] = useState<string>(
     () => initialData?.meta?.customUserAgent ?? "",
   );
+  const [upstreamProxyConfig, setUpstreamProxyConfig] =
+    useState<ProviderUpstreamProxyFormConfig>(() => ({
+      enabled: initialData?.meta?.upstreamProxy?.enabled === true,
+      url: initialData?.meta?.upstreamProxy?.url ?? "",
+    }));
   const [localProxyHeadersOverride, setLocalProxyHeadersOverride] =
     useState<string>(() =>
       formatRequestOverrideObject(
@@ -1018,8 +1034,21 @@ function ProviderFormFull({
 
   const shouldApplyLocalProxyRequestOverrides =
     (appId === "claude" || appId === "codex") && category !== "official";
+  const shouldApplyProviderUpstreamProxy = !isAnyOmoCategory;
+  const providerUpstreamProxyUrl = shouldApplyProviderUpstreamProxy
+    ? getEnabledProviderUpstreamProxyUrl(upstreamProxyConfig)
+    : undefined;
 
   const handleSubmit = async (values: ProviderFormData) => {
+    if (shouldApplyProviderUpstreamProxy) {
+      const upstreamProxyError =
+        validateProviderUpstreamProxy(upstreamProxyConfig);
+      if (upstreamProxyError) {
+        toast.error(upstreamProxyError);
+        return;
+      }
+    }
+
     const overridesResult = shouldApplyLocalProxyRequestOverrides
       ? buildLocalProxyRequestOverrides(
           localProxyHeadersOverride,
@@ -1599,6 +1628,9 @@ function ProviderFormFull({
         (appId === "claude" || appId === "codex") && category !== "official"
           ? customUserAgent.trim() || undefined
           : undefined,
+      upstreamProxy: shouldApplyProviderUpstreamProxy
+        ? buildProviderUpstreamProxyConfig(upstreamProxyConfig)
+        : baseMeta?.upstreamProxy,
       localProxyRequestOverrides: shouldApplyLocalProxyRequestOverrides
         ? overridesResult.overrides
         : undefined,
@@ -2248,6 +2280,7 @@ function ProviderFormFull({
               autoSelect={endpointAutoSelect}
               onAutoSelectChange={setEndpointAutoSelect}
               showEndpointTools
+              upstreamProxyUrl={providerUpstreamProxyUrl}
               shouldShowModelSelector={category !== "official"}
               claudeModel={claudeModel}
               defaultHaikuModel={defaultHaikuModel}
@@ -2304,6 +2337,7 @@ function ProviderFormFull({
                 isEditMode ? undefined : setDraftCustomEndpoints
               }
               autoSelect={endpointAutoSelect}
+              upstreamProxyUrl={providerUpstreamProxyUrl}
               onAutoSelectChange={setEndpointAutoSelect}
               codexModel={codexModel}
               onModelChange={handleCodexModelChange}
@@ -2352,6 +2386,7 @@ function ProviderFormFull({
               onEndpointModalToggle={setIsEndpointModalOpen}
               onCustomEndpointsChange={setDraftCustomEndpoints}
               autoSelect={endpointAutoSelect}
+              upstreamProxyUrl={providerUpstreamProxyUrl}
               onAutoSelectChange={setEndpointAutoSelect}
               shouldShowModelField={true}
               model={geminiModel}
@@ -2381,6 +2416,7 @@ function ProviderFormFull({
               onExtraOptionsChange={
                 opencodeForm.handleOpencodeExtraOptionsChange
               }
+              upstreamProxyUrl={providerUpstreamProxyUrl}
             />
           )}
 
@@ -2422,6 +2458,7 @@ function ProviderFormFull({
               onModelsChange={openclawForm.handleOpenclawModelsChange}
               userAgent={openclawForm.openclawUserAgent}
               onUserAgentChange={openclawForm.handleOpenclawUserAgentChange}
+              upstreamProxyUrl={providerUpstreamProxyUrl}
             />
           )}
 
@@ -2445,6 +2482,7 @@ function ProviderFormFull({
               onRateLimitDelayChange={
                 hermesForm.handleHermesRateLimitDelayChange
               }
+              upstreamProxyUrl={providerUpstreamProxyUrl}
             />
           )}
 
@@ -2602,7 +2640,22 @@ function ProviderFormFull({
               <ProviderAdvancedConfig
                 pricingConfig={pricingConfig}
                 onPricingConfigChange={setPricingConfig}
+                upstreamProxyConfig={upstreamProxyConfig}
+                onUpstreamProxyConfigChange={setUpstreamProxyConfig}
               />
+            )}
+
+          {!isAnyOmoCategory &&
+            (appId === "opencode" ||
+              appId === "openclaw" ||
+              appId === "hermes") && (
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                <ProviderUpstreamProxyField
+                  id="provider-upstream-proxy"
+                  config={upstreamProxyConfig}
+                  onChange={setUpstreamProxyConfig}
+                />
+              </div>
             )}
 
           {showButtons && (

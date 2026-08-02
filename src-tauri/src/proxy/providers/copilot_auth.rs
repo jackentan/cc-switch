@@ -267,6 +267,12 @@ impl From<std::io::Error> for CopilotAuthError {
     }
 }
 
+fn client_for_upstream_proxy(proxy_url: Option<&str>) -> Result<reqwest::Client, CopilotAuthError> {
+    crate::proxy::http_client::client_for_provider_upstream_proxy(proxy_url)
+        .map(|client| client.unwrap_or_else(crate::proxy::http_client::get))
+        .map_err(CopilotAuthError::NetworkError)
+}
+
 /// GitHub 设备码响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitHubDeviceCodeResponse {
@@ -592,13 +598,22 @@ impl CopilotAuthManager {
         &self,
         github_domain: Option<&str>,
     ) -> Result<GitHubDeviceCodeResponse, CopilotAuthError> {
+        self.start_device_flow_with_proxy(github_domain, None).await
+    }
+
+    pub async fn start_device_flow_with_proxy(
+        &self,
+        github_domain: Option<&str>,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<GitHubDeviceCodeResponse, CopilotAuthError> {
         let domain = match github_domain {
             Some(d) => normalize_github_domain(d)?,
             None => DEFAULT_GITHUB_DOMAIN.to_string(),
         };
         log::info!("[CopilotAuth] 启动设备码流程 (domain: {domain})");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .post(github_device_code_url(&domain))
             .header("Accept", "application/json")
             .header("User-Agent", COPILOT_USER_AGENT)
@@ -636,13 +651,24 @@ impl CopilotAuthManager {
         device_code: &str,
         github_domain: Option<&str>,
     ) -> Result<Option<GitHubAccount>, CopilotAuthError> {
+        self.poll_for_token_with_proxy(device_code, github_domain, None)
+            .await
+    }
+
+    pub async fn poll_for_token_with_proxy(
+        &self,
+        device_code: &str,
+        github_domain: Option<&str>,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Option<GitHubAccount>, CopilotAuthError> {
         let domain = match github_domain {
             Some(d) => normalize_github_domain(d)?,
             None => DEFAULT_GITHUB_DOMAIN.to_string(),
         };
         log::debug!("[CopilotAuth] 轮询 OAuth Token (domain: {domain})");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .post(github_oauth_token_url(&domain))
             .header("Accept", "application/json")
             .header("User-Agent", COPILOT_USER_AGENT)
@@ -683,7 +709,11 @@ impl CopilotAuthManager {
 
         // 获取用户信息
         let user = self
-            .fetch_user_info_with_token(&access_token, &domain)
+            .fetch_user_info_with_token_with_proxy(
+                &access_token,
+                &domain,
+                provider_upstream_proxy_url,
+            )
             .await?;
 
         // GHES 无需换取 Copilot Token，直接使用 OAuth token 作为 Bearer
@@ -694,6 +724,7 @@ impl CopilotAuthManager {
                 &access_token,
                 &user.id.to_string(),
                 &domain,
+                provider_upstream_proxy_url,
             )
             .await?;
         } else {
@@ -714,6 +745,15 @@ impl CopilotAuthManager {
     pub async fn get_valid_token_for_account(
         &self,
         account_id: &str,
+    ) -> Result<String, CopilotAuthError> {
+        self.get_valid_token_for_account_with_proxy(account_id, None)
+            .await
+    }
+
+    pub async fn get_valid_token_for_account_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> Result<String, CopilotAuthError> {
         // 确保迁移完成
         self.ensure_migration_complete().await?;
@@ -764,8 +804,13 @@ impl CopilotAuthManager {
         };
 
         // 刷新 Copilot token
-        self.fetch_copilot_token_with_github_token(&github_token, account_id, &domain)
-            .await?;
+        self.fetch_copilot_token_with_github_token(
+            &github_token,
+            account_id,
+            &domain,
+            provider_upstream_proxy_url,
+        )
+        .await?;
 
         // 返回新 token
         let tokens = self.copilot_tokens.read().await;
@@ -776,11 +821,21 @@ impl CopilotAuthManager {
 
     /// 获取有效的 Copilot Token（向后兼容：使用第一个账号）
     pub async fn get_valid_token(&self) -> Result<String, CopilotAuthError> {
+        self.get_valid_token_with_proxy(None).await
+    }
+
+    pub async fn get_valid_token_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<String, CopilotAuthError> {
         // 确保迁移完成
         self.ensure_migration_complete().await?;
 
         match self.resolve_default_account_id().await {
-            Some(id) => self.get_valid_token_for_account(&id).await,
+            Some(id) => {
+                self.get_valid_token_for_account_with_proxy(&id, provider_upstream_proxy_url)
+                    .await
+            }
             None => Err(CopilotAuthError::GitHubTokenInvalid),
         }
     }
@@ -792,6 +847,15 @@ impl CopilotAuthManager {
         &self,
         account_id: &str,
     ) -> Result<Vec<CopilotModel>, CopilotAuthError> {
+        self.fetch_models_for_account_with_proxy(account_id, None)
+            .await
+    }
+
+    pub async fn fetch_models_for_account_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Vec<CopilotModel>, CopilotAuthError> {
         self.ensure_migration_complete().await?;
 
         {
@@ -801,7 +865,9 @@ impl CopilotAuthManager {
             }
         }
 
-        let models = self.fetch_models_for_account_uncached(account_id).await?;
+        let models = self
+            .fetch_models_for_account_uncached_with_proxy(account_id, provider_upstream_proxy_url)
+            .await?;
         {
             let mut cache = self.copilot_models.write().await;
             cache.insert(account_id.to_string(), models.clone());
@@ -809,23 +875,38 @@ impl CopilotAuthManager {
         Ok(models)
     }
 
+    #[allow(dead_code)]
     async fn fetch_models_for_account_uncached(
         &self,
         account_id: &str,
     ) -> Result<Vec<CopilotModel>, CopilotAuthError> {
-        let copilot_token = self.get_valid_token_for_account(account_id).await?;
+        self.fetch_models_for_account_uncached_with_proxy(account_id, None)
+            .await
+    }
+
+    async fn fetch_models_for_account_uncached_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Vec<CopilotModel>, CopilotAuthError> {
+        let copilot_token = self
+            .get_valid_token_for_account_with_proxy(account_id, provider_upstream_proxy_url)
+            .await?;
 
         // 使用 get_api_endpoint() 动态解析 Copilot API 基础 URL。
         // 对于 github.com 账号，会查询 /copilot_internal/user 获取 endpoints.api 字段。
         // 对于 GHES 账号，/copilot_internal/user 可能不返回 endpoints——此时
         // get_api_endpoint() 会回退到 copilot_api_base(&domain)，与之前的静态 URL
         // 拼接结果一致。该回退行为是安全且符合预期的。
-        let api_base = self.get_api_endpoint(account_id).await;
+        let api_base = self
+            .get_api_endpoint_with_proxy(account_id, provider_upstream_proxy_url)
+            .await;
         let models_url = format!("{}/models", api_base);
 
         log::info!("[CopilotAuth] 获取账号 {account_id} 的 Copilot 可用模型");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .get(&models_url)
             .header("Authorization", format!("Bearer {copilot_token}"))
             .header("Content-Type", "application/json")
@@ -872,7 +953,19 @@ impl CopilotAuthManager {
         account_id: &str,
         model_id: &str,
     ) -> Result<Option<String>, CopilotAuthError> {
-        let models = self.fetch_models_for_account(account_id).await?;
+        self.get_model_vendor_for_account_with_proxy(account_id, model_id, None)
+            .await
+    }
+
+    pub async fn get_model_vendor_for_account_with_proxy(
+        &self,
+        account_id: &str,
+        model_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Option<String>, CopilotAuthError> {
+        let models = self
+            .fetch_models_for_account_with_proxy(account_id, provider_upstream_proxy_url)
+            .await?;
         Ok(models
             .into_iter()
             .find(|model| model.id == model_id)
@@ -881,8 +974,18 @@ impl CopilotAuthManager {
 
     /// 获取 Copilot 可用模型列表（向后兼容：使用第一个账号）
     pub async fn fetch_models(&self) -> Result<Vec<CopilotModel>, CopilotAuthError> {
+        self.fetch_models_with_proxy(None).await
+    }
+
+    pub async fn fetch_models_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Vec<CopilotModel>, CopilotAuthError> {
         match self.resolve_default_account_id().await {
-            Some(id) => self.fetch_models_for_account(&id).await,
+            Some(id) => {
+                self.fetch_models_for_account_with_proxy(&id, provider_upstream_proxy_url)
+                    .await
+            }
             None => Err(CopilotAuthError::GitHubTokenInvalid),
         }
     }
@@ -891,8 +994,23 @@ impl CopilotAuthManager {
         &self,
         model_id: &str,
     ) -> Result<Option<String>, CopilotAuthError> {
+        self.get_model_vendor_with_proxy(model_id, None).await
+    }
+
+    pub async fn get_model_vendor_with_proxy(
+        &self,
+        model_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<Option<String>, CopilotAuthError> {
         match self.resolve_default_account_id().await {
-            Some(id) => self.get_model_vendor_for_account(&id, model_id).await,
+            Some(id) => {
+                self.get_model_vendor_for_account_with_proxy(
+                    &id,
+                    model_id,
+                    provider_upstream_proxy_url,
+                )
+                .await
+            }
             None => Err(CopilotAuthError::GitHubTokenInvalid),
         }
     }
@@ -901,6 +1019,15 @@ impl CopilotAuthManager {
     pub async fn fetch_usage_for_account(
         &self,
         account_id: &str,
+    ) -> Result<CopilotUsageResponse, CopilotAuthError> {
+        self.fetch_usage_for_account_with_proxy(account_id, None)
+            .await
+    }
+
+    pub async fn fetch_usage_for_account_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> Result<CopilotUsageResponse, CopilotAuthError> {
         let (github_token, domain) = {
             let accounts = self.accounts.read().await;
@@ -912,7 +1039,8 @@ impl CopilotAuthManager {
 
         log::info!("[CopilotAuth] 获取账号 {account_id} 的 Copilot 使用量");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .get(copilot_usage_url(&domain))
             .header("Authorization", format!("token {github_token}"))
             .header("Content-Type", "application/json")
@@ -959,16 +1087,33 @@ impl CopilotAuthManager {
 
     /// 获取 Copilot 使用量信息（向后兼容：使用第一个账号）
     pub async fn fetch_usage(&self) -> Result<CopilotUsageResponse, CopilotAuthError> {
+        self.fetch_usage_with_proxy(None).await
+    }
+
+    pub async fn fetch_usage_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<CopilotUsageResponse, CopilotAuthError> {
         match self.resolve_default_account_id().await {
-            Some(id) => self.fetch_usage_for_account(&id).await,
+            Some(id) => {
+                self.fetch_usage_for_account_with_proxy(&id, provider_upstream_proxy_url)
+                    .await
+            }
             None => Err(CopilotAuthError::GitHubTokenInvalid),
         }
     }
-
     // ==================== 状态查询 ====================
 
     /// 获取指定账号的 API 端点（缓存命中直接返回，未命中则从 API 惰性拉取）
     pub async fn get_api_endpoint(&self, account_id: &str) -> String {
+        self.get_api_endpoint_with_proxy(account_id, None).await
+    }
+
+    pub async fn get_api_endpoint_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> String {
         let _ = self.ensure_migration_complete().await;
 
         {
@@ -990,7 +1135,10 @@ impl CopilotAuthManager {
             }
         }
 
-        match self.fetch_and_cache_endpoint(account_id).await {
+        match self
+            .fetch_and_cache_endpoint_with_proxy(account_id, provider_upstream_proxy_url)
+            .await
+        {
             Ok(endpoint) => endpoint,
             Err(e) => {
                 log::debug!(
@@ -1004,10 +1152,20 @@ impl CopilotAuthManager {
 
     /// 获取默认账号的 API 端点
     pub async fn get_default_api_endpoint(&self) -> String {
+        self.get_default_api_endpoint_with_proxy(None).await
+    }
+
+    pub async fn get_default_api_endpoint_with_proxy(
+        &self,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> String {
         let _ = self.ensure_migration_complete().await;
 
         match self.resolve_default_account_id().await {
-            Some(id) => self.get_api_endpoint(&id).await,
+            Some(id) => {
+                self.get_api_endpoint_with_proxy(&id, provider_upstream_proxy_url)
+                    .await
+            }
             None => {
                 // 无账号时回退到 github.com 的默认端点
                 copilot_api_base(DEFAULT_GITHUB_DOMAIN)
@@ -1015,7 +1173,17 @@ impl CopilotAuthManager {
         }
     }
 
+    #[allow(dead_code)]
     async fn fetch_and_cache_endpoint(&self, account_id: &str) -> Result<String, CopilotAuthError> {
+        self.fetch_and_cache_endpoint_with_proxy(account_id, None)
+            .await
+    }
+
+    async fn fetch_and_cache_endpoint_with_proxy(
+        &self,
+        account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<String, CopilotAuthError> {
         let (github_token, domain) = {
             let accounts = self.accounts.read().await;
             let account = accounts
@@ -1026,7 +1194,8 @@ impl CopilotAuthManager {
 
         log::debug!("[CopilotAuth] 为账号 {account_id} 惰性拉取动态 API 端点");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .get(copilot_usage_url(&domain))
             .header("Authorization", format!("token {github_token}"))
             .header("Content-Type", "application/json")
@@ -1065,7 +1234,6 @@ impl CopilotAuthManager {
 
         Ok(endpoint)
     }
-
     async fn get_endpoint_lock(&self, account_id: &str) -> Arc<Mutex<()>> {
         {
             let locks = self.endpoint_locks.read().await;
@@ -1303,7 +1471,18 @@ impl CopilotAuthManager {
         github_token: &str,
         domain: &str,
     ) -> Result<GitHubUser, CopilotAuthError> {
-        let response = crate::proxy::http_client::get()
+        self.fetch_user_info_with_token_with_proxy(github_token, domain, None)
+            .await
+    }
+
+    async fn fetch_user_info_with_token_with_proxy(
+        &self,
+        github_token: &str,
+        domain: &str,
+        provider_upstream_proxy_url: Option<&str>,
+    ) -> Result<GitHubUser, CopilotAuthError> {
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .get(github_user_url(domain))
             .header("Authorization", format!("token {github_token}"))
             .header("User-Agent", COPILOT_USER_AGENT)
@@ -1332,10 +1511,12 @@ impl CopilotAuthManager {
         github_token: &str,
         account_id: &str,
         domain: &str,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> Result<(), CopilotAuthError> {
         log::debug!("[CopilotAuth] 获取账号 {account_id} 的 Copilot Token (domain: {domain})");
 
-        let response = crate::proxy::http_client::get()
+        let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
+        let response = client
             .get(copilot_token_url(domain))
             .header("Authorization", format!("token {github_token}"))
             .header("User-Agent", COPILOT_USER_AGENT)
@@ -1443,6 +1624,7 @@ impl CopilotAuthManager {
                             &legacy_token,
                             &account_id,
                             DEFAULT_GITHUB_DOMAIN,
+                            None,
                         )
                         .await
                     {

@@ -169,11 +169,23 @@ impl Provider {
                 let api_key = first_non_empty(env, &["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
                 (base_url, api_key)
             }
-            AppType::GrokBuild => settings
-                .get("config")
-                .and_then(Value::as_str)
-                .and_then(crate::grok_config::extract_credentials)
-                .unwrap_or_default(),
+            // GrokBuild 的 base_url 与 api_key 必须各自解析：extract_credentials 在
+            // 凭据缺失时整个 Option 变 None，一并 unwrap_or_default 会把明明写在
+            // 配置里的 base_url 也清成空串。凭据缺失是常态（env_key 指向的变量在
+            // GUI 进程里读不到），端点不该被连坐——否则用量脚本的 {{baseUrl}} 变成
+            // 相对路径、余额查询只报「API key is empty」掩盖真因。
+            // 与上面 Codex 分支的写法保持一致。
+            AppType::GrokBuild => {
+                let config_text = settings.get("config").and_then(Value::as_str);
+                let base_url = config_text
+                    .and_then(crate::grok_config::extract_base_url)
+                    .unwrap_or_default();
+                let api_key = config_text
+                    .and_then(crate::grok_config::extract_credentials)
+                    .map(|(_, api_key)| api_key)
+                    .unwrap_or_default();
+                (base_url, api_key)
+            }
             // Hermes (config.yaml) flattens credentials at the top level, snake_case.
             AppType::Hermes => (
                 str_at(settings.get("base_url")),
@@ -395,6 +407,15 @@ impl LocalProxyRequestOverrides {
     }
 }
 
+/// Dedicated upstream proxy for one provider.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProviderUpstreamProxyConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
 /// 供应商元数据
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProviderMeta {
@@ -506,6 +527,9 @@ pub struct ProviderMeta {
         skip_serializing_if = "Option::is_none"
     )]
     pub local_proxy_request_overrides: Option<LocalProxyRequestOverrides>,
+    /// Dedicated upstream proxy for this provider. Only used by the local proxy.
+    #[serde(rename = "upstreamProxy", skip_serializing_if = "Option::is_none")]
+    pub upstream_proxy: Option<ProviderUpstreamProxyConfig>,
     /// 累加模式应用中，该 provider 是否已写入 live config。
     /// `None` 表示旧数据/未知状态，`Some(false)` 表示明确仅存在于数据库中。
     #[serde(rename = "liveConfigManaged", skip_serializing_if = "Option::is_none")]
@@ -554,6 +578,18 @@ impl ProviderMeta {
     /// 经校验的 Provider 级自定义 User-Agent。见 [`parse_custom_user_agent`]。
     pub fn custom_user_agent_header(&self) -> Result<Option<HeaderValue>, InvalidHeaderValue> {
         parse_custom_user_agent(self.custom_user_agent.as_deref())
+    }
+
+    pub fn upstream_proxy_url(&self) -> Option<&str> {
+        let config = self.upstream_proxy.as_ref()?;
+        if !config.enabled {
+            return None;
+        }
+        config
+            .url
+            .as_deref()
+            .map(str::trim)
+            .filter(|url| !url.is_empty())
     }
 
     /// 解析指定托管认证供应商绑定的账号 ID。

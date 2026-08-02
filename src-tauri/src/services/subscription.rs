@@ -318,6 +318,12 @@ pub const TIER_MONTHLY: &str = "monthly";
 /// 三处共用同一标识。见 #3651。
 pub const TIER_THIRTY_DAY: &str = "30_day";
 
+/// Grok credit 额度窗口的兜底 tier 名。Grok 账单接口只返回一个 credit 用量
+/// 窗口，`subscription_grok::tier_name_for_reset` 按重置距离优先映射到
+/// `weekly_limit` / `monthly`，两者都不匹配时用此标识；前端 `TIER_I18N_KEYS`
+/// 映射到 `subscription.credits`，tray 归入 "c" 分组。
+pub const TIER_CREDITS: &str = "credits";
+
 /// Gemini 用量分组名称（按模型而非时间窗口）。`classify_gemini_model` 输出。
 pub const TIER_GEMINI_PRO: &str = "gemini_pro";
 pub const TIER_GEMINI_FLASH: &str = "gemini_flash";
@@ -330,13 +336,21 @@ const KNOWN_TIERS: &[&str] = &[
     TIER_SEVEN_DAY_SONNET,
 ];
 
+fn client_for_upstream_proxy(proxy_url: Option<&str>) -> Result<reqwest::Client, String> {
+    crate::proxy::http_client::client_for_provider_upstream_proxy(proxy_url)
+        .map(|client| client.unwrap_or_else(crate::proxy::http_client::get))
+}
+
 /// 查询 Claude 官方订阅额度
 ///
 /// 瞬时传输失败（网络/超时/读体中断）返回 `Err`（前端 reject → retry + 保留上次
 /// 成功值）；确定性失败（鉴权/非 2xx/响应体非法 JSON）返回 `Ok(success:false)`。
 /// codex/gemini 两个查询函数遵守同一约定。
-async fn query_claude_quota(access_token: &str) -> Result<SubscriptionQuota, String> {
-    let client = crate::proxy::http_client::get();
+async fn query_claude_quota_with_proxy(
+    access_token: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
+    let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
 
     let resp = client
         .get("https://api.anthropic.com/api/oauth/usage")
@@ -675,7 +689,17 @@ pub(crate) async fn query_codex_quota(
     tool_label: &str,
     expired_message: &str,
 ) -> Result<SubscriptionQuota, String> {
-    let client = crate::proxy::http_client::get();
+    query_codex_quota_with_proxy(access_token, account_id, tool_label, expired_message, None).await
+}
+
+pub(crate) async fn query_codex_quota_with_proxy(
+    access_token: &str,
+    account_id: Option<&str>,
+    tool_label: &str,
+    expired_message: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
+    let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
 
     let mut req = client
         .get("https://chatgpt.com/backend-api/wham/usage")
@@ -970,8 +994,11 @@ const GEMINI_OAUTH_CLIENT_SECRET: &str = "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";
 ///
 /// Google OAuth access_token 仅有 ~1h 有效期，需要定期用 refresh_token 刷新。
 /// refresh_token 本身不过期（除非用户撤销授权）。
-async fn refresh_gemini_token(refresh_token: &str) -> Option<String> {
-    let client = crate::proxy::http_client::get();
+async fn refresh_gemini_token_with_proxy(
+    refresh_token: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<Option<String>, String> {
+    let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
 
     let resp = client
         .post("https://oauth2.googleapis.com/token")
@@ -984,14 +1011,20 @@ async fn refresh_gemini_token(refresh_token: &str) -> Option<String> {
         .timeout(std::time::Duration::from_secs(15))
         .send()
         .await
-        .ok()?;
+        .map_err(|e| format!("Gemini token refresh network error: {e}"))?;
 
     if !resp.status().is_success() {
-        return None;
+        return Ok(None);
     }
 
-    let body: serde_json::Value = resp.json().await.ok()?;
-    body.get("access_token")?.as_str().map(String::from)
+    let body: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini token refresh response: {e}"))?;
+    Ok(body
+        .get("access_token")
+        .and_then(|v| v.as_str())
+        .map(String::from))
 }
 
 // ── Gemini API 查询 ──────────────────────────────────────
@@ -1051,8 +1084,11 @@ fn classify_gemini_model(model_id: &str) -> &str {
 /// 两步 API 调用：
 /// 1. loadCodeAssist → 获取 cloudaicompanionProject
 /// 2. retrieveUserQuota → 获取按模型分桶的配额数据
-async fn query_gemini_quota(access_token: &str) -> Result<SubscriptionQuota, String> {
-    let client = crate::proxy::http_client::get();
+async fn query_gemini_quota_with_proxy(
+    access_token: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
+    let client = client_for_upstream_proxy(provider_upstream_proxy_url)?;
 
     // ── Step 1: loadCodeAssist 获取项目 ID ──
     let load_resp = client
@@ -1231,6 +1267,13 @@ async fn query_gemini_quota(access_token: &str) -> Result<SubscriptionQuota, Str
 /// 分支的"过期也试一把"重试同样用 `?` 传播瞬时错误——不能折叠成"已过期"，
 /// 否则一次网络抖动会被误报成确定性的凭据过期。
 pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, String> {
+    get_subscription_quota_with_proxy(tool, None).await
+}
+
+pub async fn get_subscription_quota_with_proxy(
+    tool: &str,
+    provider_upstream_proxy_url: Option<&str>,
+) -> Result<SubscriptionQuota, String> {
     match tool {
         "claude" => {
             let (token, status, message) = read_claude_credentials();
@@ -1245,7 +1288,9 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 CredentialStatus::Expired => {
                     // 即使过期也尝试调用 API（token 可能实际上仍有效）
                     if let Some(token) = token {
-                        let result = query_claude_quota(&token).await?;
+                        let result =
+                            query_claude_quota_with_proxy(&token, provider_upstream_proxy_url)
+                                .await?;
                         if result.success {
                             return Ok(result);
                         }
@@ -1258,7 +1303,7 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 }
                 CredentialStatus::Valid => {
                     let token = token.expect("token must be Some when status is Valid");
-                    query_claude_quota(&token).await
+                    query_claude_quota_with_proxy(&token, provider_upstream_proxy_url).await
                 }
             }
         }
@@ -1275,11 +1320,12 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 CredentialStatus::Expired => {
                     // 即使可能过期也尝试调用 API
                     if let Some(token) = token {
-                        let result = query_codex_quota(
+                        let result = query_codex_quota_with_proxy(
                             &token,
                             account_id.as_deref(),
                             "codex",
                             "Authentication failed. Please re-login with Codex CLI.",
+                            provider_upstream_proxy_url,
                         )
                         .await?;
                         if result.success {
@@ -1294,11 +1340,12 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 }
                 CredentialStatus::Valid => {
                     let token = token.expect("token must be Some when status is Valid");
-                    query_codex_quota(
+                    query_codex_quota_with_proxy(
                         &token,
                         account_id.as_deref(),
                         "codex",
                         "Authentication failed. Please re-login with Codex CLI.",
+                        provider_upstream_proxy_url,
                     )
                     .await
                 }
@@ -1317,13 +1364,21 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 CredentialStatus::Expired => {
                     // Gemini access_token 仅 ~1h 有效，尝试用 refresh_token 刷新
                     if let Some(ref rt) = refresh_token {
-                        if let Some(new_token) = refresh_gemini_token(rt).await {
-                            return query_gemini_quota(&new_token).await;
+                        if let Some(new_token) =
+                            refresh_gemini_token_with_proxy(rt, provider_upstream_proxy_url).await?
+                        {
+                            return query_gemini_quota_with_proxy(
+                                &new_token,
+                                provider_upstream_proxy_url,
+                            )
+                            .await;
                         }
                     }
                     // 刷新失败，尝试用旧 token
                     if let Some(ref token) = token {
-                        let result = query_gemini_quota(token).await?;
+                        let result =
+                            query_gemini_quota_with_proxy(token, provider_upstream_proxy_url)
+                                .await?;
                         if result.success {
                             return Ok(result);
                         }
@@ -1336,9 +1391,15 @@ pub async fn get_subscription_quota(tool: &str) -> Result<SubscriptionQuota, Str
                 }
                 CredentialStatus::Valid => {
                     let token = token.expect("token must be Some when status is Valid");
-                    query_gemini_quota(&token).await
+                    query_gemini_quota_with_proxy(&token, provider_upstream_proxy_url).await
                 }
             }
+        }
+        "grokbuild" => {
+            crate::services::subscription_grok::get_grok_subscription_quota_with_proxy(
+                provider_upstream_proxy_url,
+            )
+            .await
         }
         _ => Ok(SubscriptionQuota::not_found(tool)),
     }

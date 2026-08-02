@@ -60,6 +60,7 @@ interface HermesFormFieldsProps {
   onModelsChange: (models: HermesModel[]) => void;
   rateLimitDelay: number | undefined;
   onRateLimitDelayChange: (delay: number | undefined) => void;
+  upstreamProxyUrl?: string;
 }
 
 type BaseUrlErrorCode = "empty" | "invalid" | "scheme";
@@ -147,6 +148,7 @@ export function HermesFormFields({
   onModelsChange,
   rateLimitDelay,
   onRateLimitDelayChange,
+  upstreamProxyUrl,
 }: HermesFormFieldsProps) {
   const { t } = useTranslation();
   const [expandedModels, setExpandedModels] = useState<Record<number, boolean>>(
@@ -205,7 +207,14 @@ export function HermesFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((fetched) => {
         setFetchedModels(fetched);
         if (fetched.length === 0) {
@@ -221,7 +230,7 @@ export function HermesFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   const handleRemoveModel = (index: number) => {
     modelKeysRef.current.splice(index, 1);
@@ -391,7 +400,7 @@ export function HermesFormFields({
                           handleModelChange(index, "id", e.target.value)
                         }
                         placeholder={t("hermes.form.modelIdPlaceholder", {
-                          defaultValue: "anthropic/claude-opus-4-8",
+                          defaultValue: "anthropic/claude-opus-5",
                         })}
                         className="flex-1"
                       />
@@ -416,7 +425,7 @@ export function HermesFormFields({
                         handleModelChange(index, "name", e.target.value)
                       }
                       placeholder={t("hermes.form.modelNamePlaceholder", {
-                        defaultValue: "Claude Opus 4.8",
+                        defaultValue: "Claude Opus 5",
                       })}
                     />
                   </div>

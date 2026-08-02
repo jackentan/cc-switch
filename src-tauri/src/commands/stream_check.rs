@@ -149,9 +149,20 @@ async fn resolve_copilot_base_url_override(
         .as_ref()
         .and_then(|meta| meta.managed_account_id_for("github_copilot"));
 
+    let provider_upstream_proxy_url =
+        crate::proxy::http_client::provider_upstream_proxy_url(provider)
+            .map_err(AppError::Message)?;
     let endpoint = match account_id.as_deref() {
-        Some(id) => auth_manager.get_api_endpoint(id).await,
-        None => auth_manager.get_default_api_endpoint().await,
+        Some(id) => {
+            auth_manager
+                .get_api_endpoint_with_proxy(id, provider_upstream_proxy_url.as_deref())
+                .await
+        }
+        None => {
+            auth_manager
+                .get_default_api_endpoint_with_proxy(provider_upstream_proxy_url.as_deref())
+                .await
+        }
     };
 
     Ok(Some(endpoint))

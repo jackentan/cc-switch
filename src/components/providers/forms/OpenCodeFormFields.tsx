@@ -185,6 +185,7 @@ interface OpenCodeFormFieldsProps {
   // Extra Options
   extraOptions: Record<string, string>;
   onExtraOptionsChange: (options: Record<string, string>) => void;
+  upstreamProxyUrl?: string;
 }
 
 export function OpenCodeFormFields({
@@ -205,6 +206,7 @@ export function OpenCodeFormFields({
   onModelsChange,
   extraOptions,
   onExtraOptionsChange,
+  upstreamProxyUrl,
 }: OpenCodeFormFieldsProps) {
   const { t } = useTranslation();
 
@@ -229,7 +231,14 @@ export function OpenCodeFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         if (models.length === 0) {
@@ -245,7 +254,7 @@ export function OpenCodeFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   // Track which models have expanded options panel
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());

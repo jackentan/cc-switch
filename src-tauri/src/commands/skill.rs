@@ -14,7 +14,8 @@ use crate::services::skill::{
 use crate::store::AppState;
 use std::str::FromStr;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 
 /// SkillService 状态包装
 pub struct SkillServiceState(pub Arc<SkillService>);
@@ -30,6 +31,55 @@ fn parse_app_type(app: &str) -> Result<AppType, String> {
 #[tauri::command]
 pub fn get_installed_skills(app_state: State<'_, AppState>) -> Result<Vec<InstalledSkill>, String> {
     SkillService::get_all_installed(&app_state.db).map_err(|e| e.to_string())
+}
+
+/// 打开已安装 Skill 的 SSOT 本地目录
+#[tauri::command]
+pub fn open_installed_skill_folder(
+    handle: AppHandle,
+    id: String,
+    app_state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let skill = app_state
+        .db
+        .get_installed_skill(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("未找到已安装的 Skill: {id}"))?;
+    let directory =
+        SkillService::require_valid_directory(&skill.directory).map_err(|e| e.to_string())?;
+    let ssot_dir = SkillService::get_ssot_dir().map_err(|e| e.to_string())?;
+    let skill_dir = ssot_dir.join(&directory);
+
+    if !skill_dir.is_dir() {
+        return Err(format!(
+            "Skill 本地目录不存在: {}",
+            skill_dir.to_string_lossy()
+        ));
+    }
+
+    let base = ssot_dir
+        .canonicalize()
+        .map_err(|e| format!("解析 Skill 存储目录失败: {e}"))?;
+    let target = skill_dir
+        .canonicalize()
+        .map_err(|e| format!("解析 Skill 本地目录失败: {e}"))?;
+    if !target.starts_with(&base) {
+        return Err(format!("Skill 本地目录不在受管目录内: {}", skill.directory));
+    }
+
+    log::info!(
+        "Opening installed Skill folder: id={}, name={}, path={}",
+        skill.id,
+        skill.name,
+        target.display()
+    );
+
+    handle
+        .opener()
+        .open_path(target.to_string_lossy().to_string(), None::<String>)
+        .map_err(|e| format!("打开 Skill 文件夹失败: {e}"))?;
+
+    Ok(true)
 }
 
 #[tauri::command]
@@ -301,6 +351,10 @@ pub fn get_skill_repos(app_state: State<'_, AppState>) -> Result<Vec<SkillRepo>,
 /// 添加技能仓库
 #[tauri::command]
 pub fn add_skill_repo(repo: SkillRepo, app_state: State<'_, AppState>) -> Result<bool, String> {
+    // 整个结构体由前端反序列化而来，owner/name/branch 会被拼进归档下载 URL。
+    // 主防线在 download_repo，这里让非法值当场报错而不是沉淀进表。
+    SkillService::validate_repo_ref(&repo.owner, &repo.name, &repo.branch)
+        .map_err(|e| e.to_string())?;
     app_state
         .db
         .save_skill_repo(&repo)

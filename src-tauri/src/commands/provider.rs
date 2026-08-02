@@ -3,6 +3,7 @@ use tauri::{Emitter, Manager, State};
 
 use crate::app_config::AppType;
 use crate::commands::copilot::CopilotAuthState;
+use crate::commands::xai_oauth::XaiOAuthState;
 use crate::error::AppError;
 use crate::provider::{ClaudeDesktopMode, Provider};
 use crate::services::{
@@ -442,6 +443,7 @@ pub async fn queryProviderUsage(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     copilot_state: State<'_, CopilotAuthState>,
+    xai_state: State<'_, XaiOAuthState>,
     #[allow(non_snake_case)] providerId: String, // 使用 camelCase 匹配前端
     app: String,
 ) -> Result<crate::provider::UsageResult, String> {
@@ -454,8 +456,14 @@ pub async fn queryProviderUsage(
     //      不写失败快照、不 emit：保留上一份托盘快照，与前端 react-query reject
     //      保留上次 data 的语义一致；否则失败快照会经 useUsageCacheBridge 盲写
     //      回 query 缓存，抹掉 reject 本该保留的旧值。
-    let inner =
-        query_provider_usage_inner(&state, &copilot_state, app_type.clone(), &providerId).await;
+    let inner = query_provider_usage_inner(
+        &state,
+        &copilot_state,
+        &xai_state,
+        app_type.clone(),
+        &providerId,
+    )
+    .await;
     if let Ok(snapshot) = &inner {
         let payload = serde_json::json!({
             "kind": "script",
@@ -521,6 +529,7 @@ fn resolve_coding_plan_credentials(
 async fn query_provider_usage_inner(
     state: &AppState,
     copilot_state: &CopilotAuthState,
+    xai_state: &XaiOAuthState,
     app_type: AppType,
     provider_id: &str,
 ) -> Result<crate::provider::UsageResult, String> {
@@ -536,6 +545,11 @@ async fn query_provider_usage_inner(
     let template_type = usage_script
         .and_then(|s| s.template_type.as_deref())
         .unwrap_or("");
+    let provider_upstream_proxy_url = match provider {
+        Some(provider) => crate::proxy::http_client::provider_upstream_proxy_url(provider)
+            .map_err(|e| format!("Invalid provider upstream proxy: {e}"))?,
+        None => None,
+    };
 
     // ── GitHub Copilot 专用路径 ──
     if template_type == TEMPLATE_TYPE_GITHUB_COPILOT {
@@ -546,11 +560,14 @@ async fn query_provider_usage_inner(
         let auth_manager = copilot_state.0.read().await;
         let usage = match copilot_account_id.as_deref() {
             Some(account_id) => auth_manager
-                .fetch_usage_for_account(account_id)
+                .fetch_usage_for_account_with_proxy(
+                    account_id,
+                    provider_upstream_proxy_url.as_deref(),
+                )
                 .await
                 .map_err(|e| format!("Failed to fetch Copilot usage: {e}"))?,
             None => auth_manager
-                .fetch_usage()
+                .fetch_usage_with_proxy(provider_upstream_proxy_url.as_deref())
                 .await
                 .map_err(|e| format!("Failed to fetch Copilot usage: {e}"))?,
         };
@@ -588,7 +605,7 @@ async fn query_provider_usage_inner(
         let team_organization_id = usage_script.and_then(|s| s.team_organization_id.clone());
         let team_project_id = usage_script.and_then(|s| s.team_project_id.clone());
 
-        let quota = crate::services::coding_plan::get_coding_plan_quota(
+        let quota = crate::services::coding_plan::get_coding_plan_quota_with_proxy(
             &base_url,
             &api_key,
             access_key_id.as_deref(),
@@ -596,6 +613,7 @@ async fn query_provider_usage_inner(
             coding_plan_provider.as_deref(),
             team_organization_id.as_deref(),
             team_project_id.as_deref(),
+            provider_upstream_proxy_url.as_deref(),
         )
         .await
         .map_err(|e| format!("Failed to query coding plan: {e}"))?;
@@ -674,9 +692,13 @@ async fn query_provider_usage_inner(
         // 按 app 区分的凭据存储格式提取 Base URL 与 API Key
         let (base_url, api_key) = resolve_native_credentials(&app_type, provider);
 
-        return crate::services::balance::get_balance(&base_url, &api_key)
-            .await
-            .map_err(|e| format!("Failed to query balance: {e}"));
+        return crate::services::balance::get_balance_with_proxy(
+            &base_url,
+            &api_key,
+            provider_upstream_proxy_url.as_deref(),
+        )
+        .await
+        .map_err(|e| format!("Failed to query balance: {e}"));
     }
 
     // ── 官方订阅额度查询路径 ──
@@ -689,9 +711,27 @@ async fn query_provider_usage_inner(
             });
         }
 
-        let quota = crate::services::subscription::get_subscription_quota(app_type.as_str())
+        // xAI OAuth 托管供应商的额度属绑定的 SuperGrok 账号，而非所在 app 的
+        // CLI 凭据（对 codex/claude 而言 CLI 凭据是 ChatGPT/Claude 订阅，跨了
+        // 订阅体系，查出来的数字张冠李戴）。
+        let quota = if provider.map(Provider::is_xai_oauth).unwrap_or(false) {
+            let account_id = provider
+                .and_then(|p| p.meta.as_ref())
+                .and_then(|m| m.managed_account_id_for("xai_oauth"));
+            crate::commands::xai_oauth::query_xai_oauth_quota_for_with_proxy(
+                xai_state,
+                account_id,
+                provider_upstream_proxy_url.as_deref(),
+            )
+            .await?
+        } else {
+            crate::services::subscription::get_subscription_quota_with_proxy(
+                app_type.as_str(),
+                provider_upstream_proxy_url.as_deref(),
+            )
             .await
-            .map_err(|e| format!("Failed to query subscription quota: {e}"))?;
+            .map_err(|e| format!("Failed to query subscription quota: {e}"))?
+        };
 
         if !quota.success {
             return Ok(crate::provider::UsageResult {
@@ -771,8 +811,9 @@ pub fn read_live_provider_settings(app: String) -> Result<serde_json::Value, Str
 pub async fn test_api_endpoints(
     urls: Vec<String>,
     #[allow(non_snake_case)] timeoutSecs: Option<u64>,
+    #[allow(non_snake_case)] upstreamProxyUrl: Option<String>,
 ) -> Result<Vec<EndpointLatency>, String> {
-    SpeedtestService::test_endpoints(urls, timeoutSecs)
+    SpeedtestService::test_endpoints_with_proxy(urls, timeoutSecs, upstreamProxyUrl.as_deref())
         .await
         .map_err(|e| e.to_string())
 }
@@ -1079,7 +1120,7 @@ mod import_claude_desktop_tests {
         let routes = suggested_claude_desktop_routes(&p).expect("routes built");
         assert_eq!(routes.len(), 3);
         assert_eq!(routes.get("claude-sonnet-5").unwrap().model, "GLM-4.6");
-        assert_eq!(routes.get("claude-opus-4-8").unwrap().model, "GLM-4-Air");
+        assert_eq!(routes.get("claude-opus-5").unwrap().model, "GLM-4-Air");
         assert_eq!(routes.get("claude-haiku-4-5").unwrap().model, "GLM-4-Flash");
         assert_eq!(
             routes

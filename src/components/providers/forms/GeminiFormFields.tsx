@@ -38,6 +38,7 @@ interface GeminiFormFieldsProps {
   onCustomEndpointsChange: (endpoints: string[]) => void;
   autoSelect: boolean;
   onAutoSelectChange: (checked: boolean) => void;
+  upstreamProxyUrl?: string;
 
   // Model
   shouldShowModelField: boolean;
@@ -66,6 +67,7 @@ export function GeminiFormFields({
   onCustomEndpointsChange,
   autoSelect,
   onAutoSelectChange,
+  upstreamProxyUrl,
   shouldShowModelField,
   model,
   onModelChange,
@@ -85,7 +87,14 @@ export function GeminiFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         if (models.length === 0) {
@@ -101,7 +110,7 @@ export function GeminiFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   // 检测是否为 Google 官方（使用 OAuth）
   const isGoogleOfficial =
@@ -185,7 +194,7 @@ export function GeminiFormFields({
             id="gemini-model"
             value={model}
             onChange={onModelChange}
-            placeholder="gemini-3.5-flash"
+            placeholder="gemini-3.6-flash"
             fetchedModels={fetchedModels}
             isLoading={isFetchingModels}
           />
@@ -197,6 +206,7 @@ export function GeminiFormFields({
         <EndpointSpeedTest
           appId="gemini"
           providerId={providerId}
+          upstreamProxyUrl={upstreamProxyUrl}
           value={baseUrl}
           onChange={onBaseUrlChange}
           initialEndpoints={speedTestEndpoints}

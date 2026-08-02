@@ -44,8 +44,15 @@ import { ApiKeySection } from "./shared/ApiKeySection";
 import { EndpointField } from "./shared/EndpointField";
 import { ModelDropdown } from "./shared/ModelDropdown";
 import { ProviderPresetSelector } from "./ProviderPresetSelector";
+import { ProviderUpstreamProxyField } from "./ProviderUpstreamProxyField";
 import { useApiKeyLink } from "./hooks/useApiKeyLink";
 import { providerSchema, type ProviderFormData } from "@/lib/schemas/provider";
+import {
+  buildProviderUpstreamProxyConfig,
+  getEnabledProviderUpstreamProxyUrl,
+  validateProviderUpstreamProxy,
+  type ProviderUpstreamProxyFormConfig,
+} from "@/lib/providerUpstreamProxy";
 import type {
   ClaudeApiFormat,
   ClaudeDesktopModelRoute,
@@ -319,6 +326,11 @@ export function ClaudeDesktopProviderForm({
     initialMode === "direct" &&
       Object.keys(initialData?.meta?.claudeDesktopModelRoutes ?? {}).length > 0,
   );
+  const [upstreamProxyConfig, setUpstreamProxyConfig] =
+    useState<ProviderUpstreamProxyFormConfig>({
+      enabled: initialData?.meta?.upstreamProxy?.enabled === true,
+      url: initialData?.meta?.upstreamProxy?.url ?? "",
+    });
   const { data: defaultRoutes = [] } = useQuery({
     queryKey: ["claudeDesktopDefaultRoutes"],
     queryFn: () => providersApi.getClaudeDesktopDefaultRoutes(),
@@ -467,6 +479,7 @@ export function ClaudeDesktopProviderForm({
       didSeedDefaultRoutes.current = false;
       setMode("direct");
       setRoutes([]);
+      setUpstreamProxyConfig({ enabled: false, url: "" });
       return;
     }
 
@@ -540,7 +553,14 @@ export function ClaudeDesktopProviderForm({
 
     setIsFetchingModels(true);
     try {
-      const models = await fetchModelsForConfig(baseUrl.trim(), apiKey.trim());
+      const models = await fetchModelsForConfig(
+        baseUrl.trim(),
+        apiKey.trim(),
+        undefined,
+        undefined,
+        undefined,
+        getEnabledProviderUpstreamProxyUrl(upstreamProxyConfig),
+      );
       setFetchedModels(models);
       toast.success(
         t("providerForm.fetchModelsSuccess", {
@@ -591,6 +611,13 @@ export function ClaudeDesktopProviderForm({
       });
       return;
     }
+    const upstreamProxyError =
+      validateProviderUpstreamProxy(upstreamProxyConfig);
+    if (upstreamProxyError) {
+      toast.error(upstreamProxyError);
+      return;
+    }
+
     if (!baseUrl.trim() && !usesManagedOAuth) {
       toast.error(
         t("providerForm.fetchModelsNeedEndpoint", {
@@ -777,6 +804,7 @@ export function ClaudeDesktopProviderForm({
             : undefined;
     meta.codexFastMode =
       activeProviderType === "codex_oauth" ? codexFastMode : undefined;
+    meta.upstreamProxy = buildProviderUpstreamProxyConfig(upstreamProxyConfig);
 
     delete meta.endpointAutoSelect;
     delete meta.isFullUrl;
@@ -863,6 +891,9 @@ export function ClaudeDesktopProviderForm({
                   <CopilotAuthSection
                     selectedAccountId={selectedGitHubAccountId}
                     onAccountSelect={setSelectedGitHubAccountId}
+                    upstreamProxyUrl={getEnabledProviderUpstreamProxyUrl(
+                      upstreamProxyConfig,
+                    )}
                   />
                 ) : activeProviderType === "codex_oauth" ? (
                   <CodexOAuthSection
@@ -870,11 +901,17 @@ export function ClaudeDesktopProviderForm({
                     onAccountSelect={setSelectedCodexAccountId}
                     fastModeEnabled={codexFastMode}
                     onFastModeChange={setCodexFastMode}
+                    upstreamProxyUrl={getEnabledProviderUpstreamProxyUrl(
+                      upstreamProxyConfig,
+                    )}
                   />
                 ) : (
                   <XaiOAuthSection
                     selectedAccountId={selectedXaiAccountId}
                     onAccountSelect={setSelectedXaiAccountId}
+                    upstreamProxyUrl={getEnabledProviderUpstreamProxyUrl(
+                      upstreamProxyConfig,
+                    )}
                   />
                 )}
               </div>
@@ -907,6 +944,14 @@ export function ClaudeDesktopProviderForm({
               }
               showManageButton={false}
             />
+
+            <div className="rounded-lg border border-border-default bg-muted/20 p-4">
+              <ProviderUpstreamProxyField
+                id="claude-desktop-upstream-proxy"
+                config={upstreamProxyConfig}
+                onChange={setUpstreamProxyConfig}
+              />
+            </div>
 
             <div className="space-y-3 rounded-lg border border-border-default bg-muted/20 p-4">
               <div className="flex items-center justify-between gap-4">
