@@ -728,6 +728,7 @@ mod tests {
                 None,
                 None,
                 None,
+                None,
             ));
         let elapsed = start.elapsed();
 
