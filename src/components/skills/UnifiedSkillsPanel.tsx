@@ -4,6 +4,7 @@ import {
   Sparkles,
   Trash2,
   ExternalLink,
+  FolderOpen,
   RefreshCw,
   Loader2,
   Search,
@@ -360,6 +361,19 @@ const UnifiedSkillsPanel = React.forwardRef<
     });
   };
 
+  const handleOpenSkillFolder = async (skill: InstalledSkill) => {
+    try {
+      await skillsApi.openInstalledFolder(skill.id);
+    } catch (error) {
+      toast.error(
+        t("skills.openFolderFailed", {
+          defaultValue: "打开文件夹失败",
+        }),
+        { description: String(error) },
+      );
+    }
+  };
+
   const handleOpenImport = async () => {
     if (!beginWrite()) return;
     try {
@@ -708,6 +722,7 @@ const UnifiedSkillsPanel = React.forwardRef<
                     actionsDisabled={interactionBlocked}
                     appIds={visibleSkillAppIds}
                     onToggleApp={handleToggleApp}
+                    onOpenFolder={() => handleOpenSkillFolder(skill)}
                     onUninstall={() => handleUninstall(skill)}
                     onUpdate={() => handleUpdateSkill(skill)}
                     isLast={index === filteredSkills.length - 1}
@@ -765,6 +780,7 @@ interface InstalledSkillListItemProps {
   isUpdating?: boolean;
   actionsDisabled?: boolean;
   onToggleApp: (id: string, app: AppId, enabled: boolean) => void;
+  onOpenFolder: () => void;
   onUninstall: () => void;
   onUpdate?: () => void;
   isLast?: boolean;
@@ -777,11 +793,15 @@ const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
   isUpdating,
   actionsDisabled,
   onToggleApp,
+  onOpenFolder,
   onUninstall,
   onUpdate,
   isLast,
 }) => {
   const { t } = useTranslation();
+  const openFolderLabel = t("skills.openFolder", {
+    defaultValue: "打开文件夹",
+  });
 
   const openDocs = async () => {
     if (!skill.readmeUrl) return;
@@ -848,6 +868,17 @@ const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
         className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
         style={hasUpdate ? { opacity: 1 } : undefined}
       >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:text-emerald-400 dark:hover:bg-emerald-500/10"
+          onClick={onOpenFolder}
+          title={openFolderLabel}
+          aria-label={openFolderLabel}
+        >
+          <FolderOpen size={14} />
+        </Button>
         {hasUpdate && onUpdate && (
           <Button
             type="button"

@@ -71,6 +71,7 @@ pub async fn get_codex_oauth_quota(
 pub async fn get_codex_oauth_models(
     account_id: Option<String>,
     state: State<'_, CodexOAuthState>,
+    upstream_proxy_url: Option<String>,
 ) -> Result<Vec<FetchedModel>, String> {
     let manager = &state.0;
     let resolved = match account_id
@@ -86,9 +87,14 @@ pub async fn get_codex_oauth_models(
     };
 
     let token = manager
-        .get_valid_token_for_account(&id)
+        .get_valid_token_for_account_with_proxy(&id, upstream_proxy_url.as_deref())
         .await
         .map_err(|e| format!("Codex OAuth token unavailable: {e}"))?;
 
-    crate::services::codex_oauth_models::fetch_models_with_token(&token, &id).await
+    crate::services::codex_oauth_models::fetch_models_with_token_and_proxy(
+        &token,
+        &id,
+        upstream_proxy_url.as_deref(),
+    )
+    .await
 }

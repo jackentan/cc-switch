@@ -3195,7 +3195,7 @@ impl ProxyService {
 
     #[cfg(test)]
     async fn lock_switch_for_test(&self, app_type: &str) -> tokio::sync::OwnedMutexGuard<()> {
-        self.switch_locks.lock_for_app(app_type).await
+        self.lock_switch_for_app(app_type).await
     }
 
     fn preserve_toml_mcp_servers_from_existing_config(

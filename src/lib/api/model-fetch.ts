@@ -24,7 +24,16 @@ export async function fetchModelsForConfig(
   isFullUrl?: boolean,
   modelsUrl?: string,
   customUserAgent?: string,
-  options?: ModelFetchOptions,
+  optionsOrProxy?: ModelFetchOptions | string,
+  upstreamProxyUrl?: string,
+): Promise<FetchedModel[]> {
+  // 兼容 fork 旧调用：第 6 参直接传 upstreamProxyUrl 字符串
+  let options: ModelFetchOptions | undefined;
+  if (typeof optionsOrProxy === "string") {
+    upstreamProxyUrl = optionsOrProxy;
+  } else {
+    options = optionsOrProxy;
+  }
 ): Promise<FetchedModel[]> {
   return invoke("fetch_models_for_config", {
     baseUrl,
@@ -34,6 +43,7 @@ export async function fetchModelsForConfig(
     customUserAgent,
     apiFormat: options?.apiFormat,
     requestHeaders: options?.requestHeaders,
+    upstreamProxyUrl,
   });
 }
 
@@ -54,18 +64,22 @@ export async function getOpenCodeModels(): Promise<OpenCodeModelRef[]> {
  */
 export async function fetchCodexOauthModels(
   accountId?: string | null,
+  upstreamProxyUrl?: string,
 ): Promise<FetchedModel[]> {
   return invoke("get_codex_oauth_models", {
     accountId: accountId || null,
+    upstreamProxyUrl,
   });
 }
 
 /** 获取当前 xAI OAuth 账号可访问的模型列表。 */
 export async function fetchXaiOauthModels(
   accountId?: string | null,
+  upstreamProxyUrl?: string,
 ): Promise<FetchedModel[]> {
   return invoke("get_xai_oauth_models", {
     accountId: accountId || null,
+    upstreamProxyUrl,
   });
 }
 

@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import EndpointSpeedTest from "./EndpointSpeedTest";
 import { CodexOAuthSection } from "./CodexOAuthSection";
-import { ApiKeySection, EndpointField, ModelDropdown } from "./shared";
+import { ApiKeySection, EndpointField, SearchableModelPicker } from "./shared";
 import { XaiOAuthSection } from "./XaiOAuthSection";
 import {
   fetchModelsForConfig,
@@ -109,6 +109,7 @@ interface CodexFormFieldsProps {
   onCustomEndpointsChange?: (endpoints: string[]) => void;
   autoSelect: boolean;
   onAutoSelectChange: (checked: boolean) => void;
+  upstreamProxyUrl?: string;
 
   // Default model (config.toml top-level `model`)
   codexModel?: string;
@@ -401,6 +402,7 @@ export function CodexFormFields({
   onCustomEndpointsChange,
   autoSelect,
   onAutoSelectChange,
+  upstreamProxyUrl,
   codexModel = "",
   onModelChange,
   apiFormat,
@@ -445,6 +447,7 @@ export function CodexFormFields({
     isXaiOauthPreset,
     isXaiOauthAuthenticated,
     selectedXaiAccountId,
+    upstreamProxyUrl,
   ]);
   // 思考能力随 Chat 格式显示（仅 Chat Completions 转换路径用得上）；模型映射常驻
   //（填了才生成 catalog）。两者都已与「路由接管」概念解耦。
@@ -563,7 +566,7 @@ export function CodexFormFields({
       }
       const seq = ++fetchModelsSeqRef.current;
       setIsFetchingModels(true);
-      fetchXaiOauthModels(selectedXaiAccountId ?? null)
+      fetchXaiOauthModels(selectedXaiAccountId ?? null, upstreamProxyUrl)
         .then((models) => {
           if (seq !== fetchModelsSeqRef.current) return;
           setFetchedModels(models);
@@ -599,6 +602,7 @@ export function CodexFormFields({
       isFullUrl,
       undefined,
       customUserAgent,
+      upstreamProxyUrl,
     )
       .then((models) => {
         if (seq !== fetchModelsSeqRef.current) return;
@@ -625,6 +629,7 @@ export function CodexFormFields({
     isXaiOauthPreset,
     isXaiOauthAuthenticated,
     selectedXaiAccountId,
+    upstreamProxyUrl,
     t,
   ]);
 
@@ -749,6 +754,7 @@ export function CodexFormFields({
         <XaiOAuthSection
           selectedAccountId={selectedXaiAccountId}
           onAccountSelect={onXaiAccountSelect}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -830,8 +836,9 @@ export function CodexFormFields({
               )}
             </Button>
             {defaultModelSuggestions.length > 0 && (
-              <ModelDropdown
+              <SearchableModelPicker
                 models={defaultModelSuggestions}
+                value={codexModel}
                 onSelect={(id) => onModelChange(id)}
               />
             )}
@@ -1280,8 +1287,9 @@ export function CodexFormFields({
                             className="flex-1"
                           />
                           {fetchedModels.length > 0 && (
-                            <ModelDropdown
+                            <SearchableModelPicker
                               models={fetchedModels}
+                              value={row.model}
                               onSelect={(id) =>
                                 handleUpdateCatalogRow(index, {
                                   model: id,
@@ -1379,6 +1387,7 @@ export function CodexFormFields({
         <EndpointSpeedTest
           appId={appId}
           providerId={providerId}
+          upstreamProxyUrl={upstreamProxyUrl}
           value={codexBaseUrl}
           onChange={onBaseUrlChange}
           initialEndpoints={speedTestEndpoints}

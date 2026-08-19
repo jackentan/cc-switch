@@ -111,6 +111,7 @@ fn map_device_code_response(
 pub async fn auth_start_login(
     auth_provider: String,
     github_domain: Option<String>,
+    upstream_proxy_url: Option<String>,
     copilot_state: State<'_, CopilotAuthState>,
     codex_state: State<'_, CodexOAuthState>,
     xai_state: State<'_, XaiOAuthState>,
@@ -120,7 +121,10 @@ pub async fn auth_start_login(
         AUTH_PROVIDER_GITHUB_COPILOT => {
             let auth_manager = copilot_state.0.read().await;
             let response = auth_manager
-                .start_device_flow(github_domain.as_deref())
+                .start_device_flow_with_proxy(
+                    github_domain.as_deref(),
+                    upstream_proxy_url.as_deref(),
+                )
                 .await
                 .map_err(|e| e.to_string())?;
             Ok(map_device_code_response(auth_provider, response))
@@ -128,7 +132,7 @@ pub async fn auth_start_login(
         AUTH_PROVIDER_CODEX_OAUTH => {
             let auth_manager = &codex_state.0;
             let response = auth_manager
-                .start_device_flow()
+                .start_device_flow_with_proxy(upstream_proxy_url.as_deref())
                 .await
                 .map_err(|e| e.to_string())?;
             Ok(map_device_code_response(auth_provider, response))
@@ -136,7 +140,7 @@ pub async fn auth_start_login(
         AUTH_PROVIDER_XAI_OAUTH => {
             let auth_manager = xai_state.0.read().await;
             let response = auth_manager
-                .start_device_flow()
+                .start_device_flow_with_proxy(upstream_proxy_url.as_deref())
                 .await
                 .map_err(|e| e.to_string())?;
             Ok(map_device_code_response(auth_provider, response))
@@ -150,6 +154,7 @@ pub async fn auth_poll_for_account(
     auth_provider: String,
     device_code: String,
     github_domain: Option<String>,
+    upstream_proxy_url: Option<String>,
     copilot_state: State<'_, CopilotAuthState>,
     codex_state: State<'_, CodexOAuthState>,
     xai_state: State<'_, XaiOAuthState>,
@@ -159,7 +164,11 @@ pub async fn auth_poll_for_account(
         AUTH_PROVIDER_GITHUB_COPILOT => {
             let auth_manager = copilot_state.0.write().await;
             match auth_manager
-                .poll_for_token(&device_code, github_domain.as_deref())
+                .poll_for_token_with_proxy(
+                    &device_code,
+                    github_domain.as_deref(),
+                    upstream_proxy_url.as_deref(),
+                )
                 .await
             {
                 Ok(account) => {
@@ -174,7 +183,10 @@ pub async fn auth_poll_for_account(
         }
         AUTH_PROVIDER_CODEX_OAUTH => {
             let auth_manager = &codex_state.0;
-            match auth_manager.poll_for_token(&device_code).await {
+            match auth_manager
+                .poll_for_token_with_proxy(&device_code, upstream_proxy_url.as_deref())
+                .await
+            {
                 Ok(account) => {
                     let default_account_id = auth_manager.get_status().await.default_account_id;
                     Ok(account.map(|account| {
@@ -187,7 +199,10 @@ pub async fn auth_poll_for_account(
         }
         AUTH_PROVIDER_XAI_OAUTH => {
             let auth_manager = xai_state.0.write().await;
-            match auth_manager.poll_for_token(&device_code).await {
+            match auth_manager
+                .poll_for_token_with_proxy(&device_code, upstream_proxy_url.as_deref())
+                .await
+            {
                 Ok(account) => {
                     let default_account_id = auth_manager.get_status().await.default_account_id;
                     Ok(account

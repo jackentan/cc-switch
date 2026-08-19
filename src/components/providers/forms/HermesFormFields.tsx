@@ -13,8 +13,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
-import { ApiKeySection, ModelDropdown } from "./shared";
+import {
+  Download,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ApiKeySection } from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -43,6 +58,7 @@ interface HermesFormFieldsProps {
   onModelsChange: (models: HermesModel[]) => void;
   rateLimitDelay: number | undefined;
   onRateLimitDelayChange: (delay: number | undefined) => void;
+  upstreamProxyUrl?: string;
 }
 
 type BaseUrlErrorCode = "empty" | "invalid" | "scheme";
@@ -92,6 +108,7 @@ export function HermesFormFields({
   onModelsChange,
   rateLimitDelay,
   onRateLimitDelayChange,
+  upstreamProxyUrl,
 }: HermesFormFieldsProps) {
   const { t } = useTranslation();
   const [expandedModelKeys, setExpandedModelKeys] = useState<Set<string>>(
@@ -118,13 +135,26 @@ export function HermesFormFields({
   }
   const modelKeys = modelKeysRef.current;
 
-  const toggleModelDetails = (modelKey: string) => {
-    setExpandedModelKeys((current) => {
-      const next = new Set(current);
-      if (next.has(modelKey)) next.delete(modelKey);
-      else next.add(modelKey);
-      return next;
-    });
+  // Group fetched models by vendor once — Radix DropdownMenuContent doesn't
+  // lazy-mount, so computing this in JSX would re-run per model row per render.
+  const groupedFetchedModels = useMemo(
+    () =>
+      Object.entries(
+        fetchedModels.reduce(
+          (acc, m) => {
+            const v = m.ownedBy || "Other";
+            if (!acc[v]) acc[v] = [];
+            acc[v].push(m);
+            return acc;
+          },
+          {} as Record<string, FetchedModel[]>,
+        ),
+      ).sort(([a], [b]) => a.localeCompare(b)),
+    [fetchedModels],
+  );
+
+  const toggleModelAdvanced = (index: number) => {
+    setExpandedModels((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
   const handleAddModel = () => {
@@ -144,7 +174,14 @@ export function HermesFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((fetched) => {
         setFetchedModels(fetched);
         if (fetched.length === 0) {
@@ -160,7 +197,7 @@ export function HermesFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   const handleRemoveModel = (index: number) => {
     const removedKey = modelKeysRef.current[index];
@@ -346,8 +383,9 @@ export function HermesFormFields({
                         className="min-w-0 flex-1"
                       />
                       {fetchedModels.length > 0 && (
-                        <ModelDropdown
+                        <SearchableModelPicker
                           models={fetchedModels}
+                          value={model.id}
                           onSelect={(id) => handleModelChange(index, "id", id)}
                         />
                       )}

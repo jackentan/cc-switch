@@ -28,8 +28,8 @@ import EndpointSpeedTest from "./EndpointSpeedTest";
 import {
   ApiKeySection,
   EndpointField,
-  ModelDropdown,
   ModelInputWithFetch,
+  SearchableModelPicker,
 } from "./shared";
 import { CopilotAuthSection } from "./CopilotAuthSection";
 import { CodexOAuthSection } from "./CodexOAuthSection";
@@ -122,6 +122,7 @@ interface ClaudeFormFieldsProps {
   autoSelect: boolean;
   onAutoSelectChange: (checked: boolean) => void;
   showEndpointTools?: boolean;
+  upstreamProxyUrl?: string;
 
   // Model Selector
   shouldShowModelSelector: boolean;
@@ -200,6 +201,7 @@ export function ClaudeFormFields({
   autoSelect,
   onAutoSelectChange,
   showEndpointTools = true,
+  upstreamProxyUrl,
   shouldShowModelSelector,
   claudeModel,
   defaultHaikuModel,
@@ -302,7 +304,14 @@ export function ClaudeFormFields({
     const modelsUrl = matchedPreset?.modelsUrl;
 
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey, isFullUrl, modelsUrl, customUserAgent)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      isFullUrl,
+      modelsUrl,
+      customUserAgent,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         showModelFetchResult(models.length);
@@ -312,7 +321,15 @@ export function ClaudeFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, isFullUrl, customUserAgent, showModelFetchResult, t]);
+  }, [
+    baseUrl,
+    apiKey,
+    isFullUrl,
+    customUserAgent,
+    upstreamProxyUrl,
+    showModelFetchResult,
+    t,
+  ]);
 
   const handleFetchCopilotModels = useCallback(() => {
     if (!isCopilotAuthenticated) {
@@ -328,8 +345,8 @@ export function ClaudeFormFields({
     copilotModelsRequestRef.current = requestId;
     setModelsLoading(true);
     const fetchModels = selectedGitHubAccountId
-      ? copilotGetModelsForAccount(selectedGitHubAccountId)
-      : copilotGetModels();
+      ? copilotGetModelsForAccount(selectedGitHubAccountId, upstreamProxyUrl)
+      : copilotGetModels(upstreamProxyUrl);
 
     fetchModels
       .then((models) => {
@@ -354,6 +371,7 @@ export function ClaudeFormFields({
   }, [
     isCopilotAuthenticated,
     selectedGitHubAccountId,
+    upstreamProxyUrl,
     showModelFetchResult,
     t,
   ]);
@@ -371,7 +389,7 @@ export function ClaudeFormFields({
     const requestId = codexOauthModelsRequestRef.current + 1;
     codexOauthModelsRequestRef.current = requestId;
     setCodexOauthModelsLoading(true);
-    fetchCodexOauthModels(selectedCodexAccountId)
+    fetchCodexOauthModels(selectedCodexAccountId, upstreamProxyUrl)
       .then((models) => {
         if (codexOauthModelsRequestRef.current !== requestId) return;
         setCodexOauthModels(models);
@@ -390,6 +408,7 @@ export function ClaudeFormFields({
   }, [
     isCodexOauthAuthenticated,
     selectedCodexAccountId,
+    upstreamProxyUrl,
     showModelFetchResult,
     t,
   ]);
@@ -407,7 +426,7 @@ export function ClaudeFormFields({
     const requestId = xaiOauthModelsRequestRef.current + 1;
     xaiOauthModelsRequestRef.current = requestId;
     setXaiOauthModelsLoading(true);
-    fetchXaiOauthModels(selectedXaiAccountId)
+    fetchXaiOauthModels(selectedXaiAccountId, upstreamProxyUrl)
       .then((models) => {
         if (xaiOauthModelsRequestRef.current !== requestId) return;
         setXaiOauthModels(models);
@@ -423,7 +442,13 @@ export function ClaudeFormFields({
           setXaiOauthModelsLoading(false);
         }
       });
-  }, [isXaiOauthAuthenticated, selectedXaiAccountId, showModelFetchResult, t]);
+  }, [
+    isXaiOauthAuthenticated,
+    selectedXaiAccountId,
+    upstreamProxyUrl,
+    showModelFetchResult,
+    t,
+  ]);
 
   useEffect(() => {
     copilotModelsRequestRef.current += 1;
@@ -496,10 +521,14 @@ export function ClaudeFormFields({
     }
 
     if (isCopilotPreset && copilotModels.length > 0) {
-      // Reuse the searchable dropdown by mapping Copilot models to FetchedModel.
-      const copilotFetchedModels: FetchedModel[] = copilotModels.map((m) => ({
-        id: m.id,
-        ownedBy: m.vendor || null,
+      // 按 vendor 分组
+      const grouped: Record<string, CopilotModel[]> = {};
+      for (const model of copilotModels) {
+        const vendor = model.vendor || "Other";
+        if (!grouped[vendor]) grouped[vendor] = [];
+        grouped[vendor].push(model);
+      }
+      const vendors = Object.keys(grouped).sort();
       }));
 
       return (
@@ -513,7 +542,11 @@ export function ClaudeFormFields({
             autoComplete="off"
             className="flex-1"
           />
-          <ModelDropdown models={copilotFetchedModels} onSelect={updateValue} />
+          <SearchableModelPicker
+            models={copilotFetchedModels}
+            value={value}
+            onSelect={updateValue}
+          />
         </div>
       );
     }
@@ -659,6 +692,7 @@ export function ClaudeFormFields({
               ? () => onManageAuthAccounts("github_copilot")
               : undefined
           }
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -675,6 +709,7 @@ export function ClaudeFormFields({
           }
           fastModeEnabled={codexFastMode}
           onFastModeChange={onCodexFastModeChange}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -682,6 +717,7 @@ export function ClaudeFormFields({
         <XaiOAuthSection
           selectedAccountId={selectedXaiAccountId}
           onAccountSelect={onXaiAccountSelect}
+          upstreamProxyUrl={upstreamProxyUrl}
         />
       )}
 
@@ -770,6 +806,7 @@ export function ClaudeFormFields({
         <EndpointSpeedTest
           appId="claude"
           providerId={providerId}
+          upstreamProxyUrl={upstreamProxyUrl}
           value={baseUrl}
           onChange={onBaseUrlChange}
           initialEndpoints={speedTestEndpoints}

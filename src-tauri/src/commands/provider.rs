@@ -560,6 +560,11 @@ async fn query_provider_usage_inner(
     let template_type = usage_script
         .and_then(|s| s.template_type.as_deref())
         .unwrap_or("");
+    let provider_upstream_proxy_url = match provider {
+        Some(provider) => crate::proxy::http_client::provider_upstream_proxy_url(provider)
+            .map_err(|e| format!("Invalid provider upstream proxy: {e}"))?,
+        None => None,
+    };
 
     // ── GitHub Copilot 专用路径 ──
     if template_type == TEMPLATE_TYPE_GITHUB_COPILOT {
@@ -570,11 +575,14 @@ async fn query_provider_usage_inner(
         let auth_manager = copilot_state.0.read().await;
         let usage = match copilot_account_id.as_deref() {
             Some(account_id) => auth_manager
-                .fetch_usage_for_account(account_id)
+                .fetch_usage_for_account_with_proxy(
+                    account_id,
+                    provider_upstream_proxy_url.as_deref(),
+                )
                 .await
                 .map_err(|e| format!("Failed to fetch Copilot usage: {e}"))?,
             None => auth_manager
-                .fetch_usage()
+                .fetch_usage_with_proxy(provider_upstream_proxy_url.as_deref())
                 .await
                 .map_err(|e| format!("Failed to fetch Copilot usage: {e}"))?,
         };
@@ -612,7 +620,7 @@ async fn query_provider_usage_inner(
         let team_organization_id = usage_script.and_then(|s| s.team_organization_id.clone());
         let team_project_id = usage_script.and_then(|s| s.team_project_id.clone());
 
-        let quota = crate::services::coding_plan::get_coding_plan_quota(
+        let quota = crate::services::coding_plan::get_coding_plan_quota_with_proxy(
             &base_url,
             &api_key,
             access_key_id.as_deref(),
@@ -620,6 +628,7 @@ async fn query_provider_usage_inner(
             coding_plan_provider.as_deref(),
             team_organization_id.as_deref(),
             team_project_id.as_deref(),
+            provider_upstream_proxy_url.as_deref(),
         )
         .await
         .map_err(|e| format!("Failed to query coding plan: {e}"))?;
@@ -698,9 +707,13 @@ async fn query_provider_usage_inner(
         // 按 app 区分的凭据存储格式提取 Base URL 与 API Key
         let (base_url, api_key) = resolve_native_credentials(&app_type, provider);
 
-        return crate::services::balance::get_balance(&base_url, &api_key)
-            .await
-            .map_err(|e| format!("Failed to query balance: {e}"));
+        return crate::services::balance::get_balance_with_proxy(
+            &base_url,
+            &api_key,
+            provider_upstream_proxy_url.as_deref(),
+        )
+        .await
+        .map_err(|e| format!("Failed to query balance: {e}"));
     }
 
     // ── 官方订阅额度查询路径 ──
@@ -720,11 +733,19 @@ async fn query_provider_usage_inner(
             let account_id = provider
                 .and_then(|p| p.meta.as_ref())
                 .and_then(|m| m.managed_account_id_for("xai_oauth"));
-            crate::commands::xai_oauth::query_xai_oauth_quota_for(xai_state, account_id).await?
+            crate::commands::xai_oauth::query_xai_oauth_quota_for_with_proxy(
+                xai_state,
+                account_id,
+                provider_upstream_proxy_url.as_deref(),
+            )
+            .await?
         } else {
-            crate::services::subscription::get_subscription_quota(app_type.as_str())
-                .await
-                .map_err(|e| format!("Failed to query subscription quota: {e}"))?
+            crate::services::subscription::get_subscription_quota_with_proxy(
+                app_type.as_str(),
+                provider_upstream_proxy_url.as_deref(),
+            )
+            .await
+            .map_err(|e| format!("Failed to query subscription quota: {e}"))?
         };
 
         if !quota.success {
@@ -805,8 +826,9 @@ pub fn read_live_provider_settings(app: String) -> Result<serde_json::Value, Str
 pub async fn test_api_endpoints(
     urls: Vec<String>,
     #[allow(non_snake_case)] timeoutSecs: Option<u64>,
+    #[allow(non_snake_case)] upstreamProxyUrl: Option<String>,
 ) -> Result<Vec<EndpointLatency>, String> {
-    SpeedtestService::test_endpoints(urls, timeoutSecs)
+    SpeedtestService::test_endpoints_with_proxy(urls, timeoutSecs, upstreamProxyUrl.as_deref())
         .await
         .map_err(|e| e.to_string())
 }

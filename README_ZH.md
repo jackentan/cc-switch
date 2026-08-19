@@ -1,22 +1,44 @@
 <div align="center">
 
-# CC Switch
+# CC Switch (Fork)
 
 ### Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw 和 Hermes Agent 的全方位管理工具
 
-[![Version](https://img.shields.io/github/v/release/farion1231/cc-switch?color=blue&label=version)](https://github.com/farion1231/cc-switch/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/farion1231/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.19.0--fork.2-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
-[![Downloads](https://img.shields.io/github/downloads/farion1231/cc-switch/total)](https://github.com/farion1231/cc-switch/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
 <a href="https://trendshift.io/repositories/15372" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15372" alt="farion1231%2Fcc-switch | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://www.star-history.com/#farion1231/cc-switch&Date"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=farion1231/cc-switch&theme=dark" /><img alt="Star History Rank" src="https://api.star-history.com/badge?repo=farion1231/cc-switch" width="196" height="55" /></picture></a>
 
 ### 🌐 唯一官方网站：**[ccswitch.io](https://ccswitch.io)**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [Deutsch](README_DE.md) | [更新日志](CHANGELOG.md)
+[中文首页](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [Deutsch](README_DE.md) | 中文 | [更新日志](CHANGELOG.md)
 
 </div>
+
+基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.19.0`，并保留本 Fork 的自用改动。
+
+**个人自用修改版，主打能用就行。** 新增或修改的功能未经充分测试，**可能存在 bug 或与上游不兼容**，介意请使用[官方版](https://github.com/farion1231/cc-switch)。
+
+## 与上游的区别
+
+| 使用场景 | 官方版 | 本 Fork |
+|----------|--------|---------|
+| 看当前配置 | 供应商卡片主要显示名称 | 供应商名称旁直接显示当前模型名，Claude 多角色模型会尽量收成短标签 |
+| 选择模型 | 长模型列表主要靠滚动查找 | 获取模型后可搜索、按供应商分组，并高亮当前选中的模型 |
+| Codex 普通模型 | 非本地路由配置里模型入口较弱 | 非本地路由时可直接填写或获取模型名，并写入 Codex 配置 |
+| 供应商专属上游代理 | 只有全局上游代理，按原逻辑统一生效 | 可给指定供应商/渠道单独配置上游代理；启用后只影响该供应商，访问上游都走它，并优先于全局上游代理 |
+| 新增供应商 | 新配置默认排到列表最后 | 有已有配置时，新配置默认插到第二位，方便马上启用或调整 |
+| 调整供应商顺序 | 主要靠拖拽 | 保留拖拽，并增加右键“一键置顶 / 一键置底” |
+| 托盘操作 | 左键更偏向打开托盘菜单 | 左键托盘图标直接显示 / 隐藏主窗口 |
+| 连通检测 | 仅检查供应商地址是否可达 | 跟随上游轻量连通检测，不发送真实模型请求，减少误报和额外消耗 |
+| 更新方式 | 使用上游自动更新链路 | 检查本 Fork Releases，有新版本时打开发布页，由用户手动下载 |
+| 发布来源 | 官方仓库发布 | 本 Fork 独立发布，安装包以本仓库 Releases 为准 |
+
+> 说明：供应商专属上游代理只在请求先进入 CC Switch 本地代理转发时生效；如果专属代理配置错误或不可用，请求会失败，不会悄悄回退到全局上游代理。
+
 
 ## ❤️赞助商
 
@@ -223,7 +245,7 @@ TeamoRouter 还提供企业级功能，包括集中账单、团队管理、BYOK�
 
 ## 功能特性
 
-[完整更新日志](CHANGELOG.md) | [发布说明](docs/release-notes/v3.16.1-zh.md)
+[完整更新日志](CHANGELOG.md) | [发布说明](docs/release-notes/v3.19.0-zh.md)
 
 ### 供应商管理
 
@@ -235,6 +257,7 @@ TeamoRouter 还提供企业级功能，包括集中账单、团队管理、BYOK�
 
 - **本地代理热切换** — 格式转换、自动故障转移、熔断器、供应商健康监控和整流器
 - **应用级代理接管** — 独立为 Claude、Codex、Gemini 或 Grok Build 配置代理，具体到单个供应商
+- **供应商专属上游代理** — 请求先进入本地代理后，可让指定供应商单独走自己的上游代理；配置错误会直接失败，不会悄悄改走全局代理
 
 ### MCP、Prompts 与 Skills
 
@@ -361,7 +384,7 @@ CC_SWITCH_GDK_BACKEND=wayland ./CC-Switch-*.AppImage
 
 ### Windows 用户
 
-从 [Releases](../../releases) 页面下载最新版本的 `CC-Switch-v{版本号}-Windows.msi` 安装包或 `CC-Switch-v{版本号}-Windows-Portable.zip` 绿色版。
+从 [Releases](https://github.com/kongkongyo/cc-switch/releases) 页面下载最新版本的 `CC-Switch-v{版本号}-Windows.msi` 安装包或 `CC-Switch-v{版本号}-Windows-Portable.zip` 绿色版。
 
 ### macOS 用户
 
@@ -379,7 +402,7 @@ brew upgrade --cask cc-switch
 
 **方式二：手动下载**
 
-从 [Releases](../../releases) 页面下载 `CC-Switch-v{版本号}-macOS.dmg`（推荐）或 `.zip`。
+从 [Releases](https://github.com/kongkongyo/cc-switch/releases) 页面下载 `CC-Switch-v{版本号}-macOS.dmg`（推荐）或 `.zip`。
 
 > **注意**：CC Switch macOS 版本已通过 Apple 代码签名和公证，可直接安装打开。
 
@@ -393,7 +416,7 @@ paru -S cc-switch-bin
 
 ### Linux 用户
 
-从 [Releases](../../releases) 页面下载最新版本的 Linux 安装包：
+从 [Releases](https://github.com/kongkongyo/cc-switch/releases) 页面下载最新版本的 Linux 安装包：
 
 - `CC-Switch-v{版本号}-Linux.deb`（Debian/Ubuntu）
 - `CC-Switch-v{版本号}-Linux.rpm`（Fedora/RHEL/openSUSE）

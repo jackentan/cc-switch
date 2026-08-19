@@ -13,9 +13,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Download,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ApiKeySection, ModelDropdown } from "./shared";
+import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -49,6 +64,7 @@ interface OpenClawFormFieldsProps {
   // User-Agent
   userAgent: boolean;
   onUserAgentChange: (checked: boolean) => void;
+  upstreamProxyUrl?: string;
 }
 
 export function OpenClawFormFields({
@@ -67,6 +83,7 @@ export function OpenClawFormFields({
   onModelsChange,
   userAgent,
   onUserAgentChange,
+  upstreamProxyUrl,
 }: OpenClawFormFieldsProps) {
   const { t } = useTranslation();
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
@@ -127,7 +144,14 @@ export function OpenClawFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         if (models.length === 0) {
@@ -143,7 +167,7 @@ export function OpenClawFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   // Remove a model entry
   const handleRemoveModel = (index: number) => {
@@ -361,8 +385,9 @@ export function OpenClawFormFields({
                         className="min-w-0 flex-1"
                       />
                       {fetchedModels.length > 0 && (
-                        <ModelDropdown
+                        <SearchableModelPicker
                           models={fetchedModels}
+                          value={model.id}
                           onSelect={(id) => handleModelChange(index, "id", id)}
                         />
                       )}

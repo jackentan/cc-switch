@@ -20,6 +20,12 @@ import {
   buildLocalProxyRequestOverrides,
   formatRequestOverrideObject,
 } from "@/lib/requestOverrides";
+import {
+  buildProviderUpstreamProxyConfig,
+  getEnabledProviderUpstreamProxyUrl,
+  validateProviderUpstreamProxy,
+  type ProviderUpstreamProxyFormConfig,
+} from "@/lib/providerUpstreamProxy";
 import type {
   ClaudeApiKeyField,
   CodexApiFormat,
@@ -32,6 +38,7 @@ import type { ProviderFormProps, ProviderFormValues } from "./ProviderForm";
 import { BasicFormFields } from "./BasicFormFields";
 import { CodexFormFields } from "./CodexFormFields";
 import { ProviderPresetSelector } from "./ProviderPresetSelector";
+import { ProviderUpstreamProxyField } from "./ProviderUpstreamProxyField";
 import {
   grokBuildOfficialPreset,
   grokBuildProviderPresets,
@@ -138,6 +145,11 @@ export function GrokBuildProviderForm({
   const [customUserAgent, setCustomUserAgent] = useState(
     initialData?.meta?.customUserAgent ?? "",
   );
+  const [upstreamProxyConfig, setUpstreamProxyConfig] =
+    useState<ProviderUpstreamProxyFormConfig>({
+      enabled: initialData?.meta?.upstreamProxy?.enabled === true,
+      url: initialData?.meta?.upstreamProxy?.url ?? "",
+    });
   const [headersOverride, setHeadersOverride] = useState(
     formatRequestOverrideObject(
       initialData?.meta?.localProxyRequestOverrides?.headers,
@@ -373,6 +385,13 @@ export function GrokBuildProviderForm({
       return;
     }
 
+    const upstreamProxyError =
+      validateProviderUpstreamProxy(upstreamProxyConfig);
+    if (upstreamProxyError) {
+      toast.error(upstreamProxyError);
+      return;
+    }
+
     const customEndpoints = Object.fromEntries(
       draftCustomEndpoints.map((url) => [
         url,
@@ -394,6 +413,7 @@ export function GrokBuildProviderForm({
       promptCacheRouting,
       codexChatReasoning,
       customUserAgent: customUserAgent.trim() || undefined,
+      upstreamProxy: buildProviderUpstreamProxyConfig(upstreamProxyConfig),
       localProxyRequestOverrides: requestOverrides.overrides,
       maxOutputTokens:
         Number.isInteger(parsedMaxOutputTokens) && parsedMaxOutputTokens > 0
@@ -467,6 +487,9 @@ export function GrokBuildProviderForm({
               onCustomEndpointsChange={setDraftCustomEndpoints}
               autoSelect={endpointAutoSelect}
               onAutoSelectChange={setEndpointAutoSelect}
+              upstreamProxyUrl={getEnabledProviderUpstreamProxyUrl(
+                upstreamProxyConfig,
+              )}
               codexModel={upstreamModel}
               onModelChange={(value) => {
                 setUpstreamModel(value);
@@ -515,6 +538,14 @@ export function GrokBuildProviderForm({
                 }}
               />
             </FormItem>
+
+            <div className="rounded-lg border border-border-default p-4">
+              <ProviderUpstreamProxyField
+                id="grokbuild-upstream-proxy"
+                config={upstreamProxyConfig}
+                onChange={setUpstreamProxyConfig}
+              />
+            </div>
 
             <div className="space-y-2">
               <FormLabel htmlFor="grokbuild-config-toml">

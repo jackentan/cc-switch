@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
-import { ApiKeySection, ModelDropdown } from "./shared";
+import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -182,6 +182,7 @@ interface OpenCodeFormFieldsProps {
   // Extra Options
   extraOptions: Record<string, string>;
   onExtraOptionsChange: (options: Record<string, string>) => void;
+  upstreamProxyUrl?: string;
 }
 
 export function OpenCodeFormFields({
@@ -202,6 +203,7 @@ export function OpenCodeFormFields({
   onModelsChange,
   extraOptions,
   onExtraOptionsChange,
+  upstreamProxyUrl,
 }: OpenCodeFormFieldsProps) {
   const { t } = useTranslation();
 
@@ -217,7 +219,14 @@ export function OpenCodeFormFields({
       return;
     }
     setIsFetchingModels(true);
-    fetchModelsForConfig(baseUrl, apiKey)
+    fetchModelsForConfig(
+      baseUrl,
+      apiKey,
+      undefined,
+      undefined,
+      undefined,
+      upstreamProxyUrl,
+    )
       .then((models) => {
         setFetchedModels(models);
         if (models.length === 0) {
@@ -233,7 +242,7 @@ export function OpenCodeFormFields({
         showFetchModelsError(err, t);
       })
       .finally(() => setIsFetchingModels(false));
-  }, [baseUrl, apiKey, t]);
+  }, [baseUrl, apiKey, upstreamProxyUrl, t]);
 
   // Track which models have expanded options panel
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
@@ -724,8 +733,9 @@ export function OpenCodeFormFields({
                       })}
                     />
                     {fetchedModels.length > 0 && (
-                      <ModelDropdown
+                      <SearchableModelPicker
                         models={fetchedModels}
+                        value={key}
                         onSelect={(id) => handleModelIdChange(key, id)}
                       />
                     )}

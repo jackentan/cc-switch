@@ -1,22 +1,44 @@
 <div align="center">
 
-# CC Switch
+# CC Switch (Fork)
 
 ### Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes Agent のオールインワン管理ツール
 
-[![Version](https://img.shields.io/github/v/release/farion1231/cc-switch?color=blue&label=version)](https://github.com/farion1231/cc-switch/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/farion1231/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.19.0--fork.2-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
-[![Downloads](https://img.shields.io/github/downloads/farion1231/cc-switch/total)](https://github.com/farion1231/cc-switch/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
 <a href="https://trendshift.io/repositories/15372" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15372" alt="farion1231%2Fcc-switch | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://www.star-history.com/#farion1231/cc-switch&Date"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=farion1231/cc-switch&theme=dark" /><img alt="Star History Rank" src="https://api.star-history.com/badge?repo=farion1231/cc-switch" width="196" height="55" /></picture></a>
 
 ### 🌐 唯一の公式サイト：**[ccswitch.io](https://ccswitch.io)**
 
-[English](README.md) | [中文](README_ZH.md) | 日本語 | [Deutsch](README_DE.md) | [Changelog](CHANGELOG.md)
+[中文首页](README.md) | [English](README_EN.md) | [Deutsch](README_DE.md) | [内置中文文档](README_ZH.md) | 日本語 | [Changelog](CHANGELOG.md)
 
 </div>
+
+[farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.19.0` をベースにし、この Fork の個人向け変更を保持しています。
+
+**個人向けの実用 Fork 版です。** 追加・変更した機能は十分に検証されていないため、**不具合や upstream との非互換**が含まれる可能性があります。安定性を重視する場合は[公式版](https://github.com/farion1231/cc-switch)を使用してください。
+
+## Upstream との違い
+
+| 使用場面 | 公式版 | この Fork |
+|----------|--------|-----------|
+| 現在の設定を見る | プロバイダカードは主に名前を表示 | 名前の横に現在のモデル名を表示。Claude の役割別モデルは可能な範囲で短い表示にします |
+| モデルを選ぶ | 長いモデル一覧は主にスクロールして探す | モデル取得後に検索でき、プロバイダ別に見られ、選択中のモデルも分かります |
+| Codex の通常モデル | ローカルルーティング以外の設定ではモデル入力欄が目立ちにくい | ローカルルーティング以外でもモデル名を直接入力または取得し、Codex 設定へ書き込めます |
+| プロバイダ専用 upstream proxy | 既存の流れではグローバル upstream proxy のみ適用 | 指定したプロバイダ / チャンネルに専用 upstream proxy を設定可能。有効化するとそのプロバイダだけに効き、上流へのリクエストはそれを使い、グローバル upstream proxy より優先されます |
+| 新規プロバイダ | 末尾に追加 | 既存プロバイダがある場合は 2 番目に挿入され、すぐ有効化や並び替えがしやすくなります |
+| プロバイダの並び替え | 主にドラッグ操作 | ドラッグ操作に加えて、右クリックで先頭 / 末尾へ移動できます |
+| トレイ操作 | 左クリックはメニュー表示寄り | トレイアイコン左クリックでメインウィンドウの表示 / 非表示を切り替えます |
+| モデルテスト | デフォルトのテストプロンプトが比較的単純 | 複数の軽量プロンプトから毎回ランダムに 1 つ選択。1 行 1 件のカスタム入力にも対応します |
+| 更新方式 | upstream の自動更新チェーンを使用 | この Fork の Releases を確認し、リリースページを開いて手動ダウンロードします |
+| 配布元 | 公式リポジトリの Releases | インストーラーはこの Fork の Releases で配布されます |
+
+> 注: プロバイダ専用 upstream proxy は、リクエストが先に CC Switch のローカルプロキシへ入って転送される場合にのみ適用されます。専用 proxy の設定が間違っている、または利用できない場合、グローバル upstream proxy へ静かに戻らずリクエストは失敗します。
+
 
 ## ❤️スポンサー
 
@@ -222,7 +244,7 @@ TeamoRouter は、集中請求、チーム管理、BYOK、スマートルーテ�
 
 ## 特長
 
-[完全な更新履歴](CHANGELOG.md) | [リリースノート](docs/release-notes/v3.16.1-ja.md)
+[完全な更新履歴](CHANGELOG.md) | [リリースノート](docs/release-notes/v3.19.0-ja.md)
 
 ### プロバイダ管理
 
@@ -234,6 +256,7 @@ TeamoRouter は、集中請求、チーム管理、BYOK、スマートルーテ�
 
 - **ローカルプロキシのホットスイッチ** -- フォーマット変換、自動フェイルオーバー、サーキットブレーカー、プロバイダヘルスモニタリング、リクエストレクティファイア
 - **アプリレベルのテイクオーバー** -- Claude、Codex、Gemini、Grok Build を個別にプロキシ経由でルーティング、プロバイダ単位で設定可能
+- **プロバイダ専用 upstream proxy** -- リクエストがローカルプロキシに入った後、指定したプロバイダだけを専用の upstream proxy 経由にできます。設定ミス時はグローバル proxy に静かに戻りません
 
 ### MCP、Prompts & Skills
 
@@ -358,7 +381,7 @@ CC_SWITCH_GDK_BACKEND=wayland ./CC-Switch-*.AppImage
 
 ### Windows ユーザー
 
-[Releases](../../releases) ページから最新版の `CC-Switch-v{version}-Windows.msi` インストーラー、またはポータブル版 `CC-Switch-v{version}-Windows-Portable.zip` をダウンロード。
+[Releases](https://github.com/kongkongyo/cc-switch/releases) ページから最新版の `CC-Switch-v{version}-Windows.msi` インストーラー、またはポータブル版 `CC-Switch-v{version}-Windows-Portable.zip` をダウンロード。
 
 ### macOS ユーザー
 
@@ -376,7 +399,7 @@ brew upgrade --cask cc-switch
 
 **方法 2: 手動ダウンロード**
 
-[Releases](../../releases) から `CC-Switch-v{version}-macOS.zip` をダウンロードして展開。
+[Releases](https://github.com/kongkongyo/cc-switch/releases) から `CC-Switch-v{version}-macOS.zip` をダウンロードして展開。
 
 > **注意**: 開発者アカウント未登録のため、初回起動時に「開発元を確認できません」と表示される場合があります。一度閉じてから「システム設定」→「プライバシーとセキュリティ」→「このまま開く」をクリックしてください。以降は通常通り起動できます。
 
@@ -390,7 +413,7 @@ paru -S cc-switch-bin
 
 ### Linux ユーザー
 
-[Releases](../../releases) から最新版の Linux ビルドをダウンロード：
+[Releases](https://github.com/kongkongyo/cc-switch/releases) から最新版の Linux ビルドをダウンロード：
 
 - `CC-Switch-v{version}-Linux.deb`（Debian/Ubuntu）
 - `CC-Switch-v{version}-Linux.rpm`（Fedora/RHEL/openSUSE）

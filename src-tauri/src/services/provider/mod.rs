@@ -4953,18 +4953,18 @@ impl ProviderService {
 
         // OMO providers are switched through their own exclusive path.
         if matches!(app_type, AppType::OpenCode) && _provider.category.as_deref() == Some("omo") {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         // OMO Slim providers are switched through their own exclusive path.
         if matches!(app_type, AppType::OpenCode)
             && _provider.category.as_deref() == Some("omo-slim")
         {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         if matches!(app_type, AppType::ClaudeDesktop) {
-            return Self::switch_normal(state, app_type, id, &providers);
+            return Self::switch_normal(state, app_type, id);
         }
 
         // Provider switches and takeover toggles both mutate live config and the
@@ -5028,8 +5028,10 @@ impl ProviderService {
             return Ok(SwitchResult::default());
         }
 
-        // Normal mode: full switch with Live config write
-        Self::switch_normal(state, app_type, id, &providers)
+        // Normal mode: full switch with Live config write. The per-app switch
+        // lock is already held for Claude/Codex/Gemini, so avoid taking it
+        // again; tokio::Mutex is not reentrant.
+        Self::switch_normal_locked(state, app_type, id)
     }
 
     /// Normal switch flow (non-proxy mode)
@@ -5037,8 +5039,19 @@ impl ProviderService {
         state: &AppState,
         app_type: AppType,
         id: &str,
-        providers: &indexmap::IndexMap<String, Provider>,
     ) -> Result<SwitchResult, AppError> {
+        let _switch_guard =
+            futures::executor::block_on(state.proxy_service.lock_switch_for_app(app_type.as_str()));
+        Self::switch_normal_locked(state, app_type, id)
+    }
+
+    /// Normal switch flow after the caller has acquired the per-app switch lock.
+    fn switch_normal_locked(
+        state: &AppState,
+        app_type: AppType,
+        id: &str,
+    ) -> Result<SwitchResult, AppError> {
+        let providers = state.db.get_all_providers(app_type.as_str())?;
         let provider = providers
             .get(id)
             .ok_or_else(|| AppError::Message(format!("供应商 {id} 不存在")))?;
@@ -5072,14 +5085,14 @@ impl ProviderService {
             .and_then(|current_id| providers.get(current_id))
             .and_then(Self::managed_codex_oauth_account_id);
         let mut backfill_completed = false;
-        if let Some(current_id) = current_id {
+        if let Some(current_id) = current_id.as_deref() {
             if current_id != id {
                 // Additive mode apps - all providers coexist in the same file,
                 // no backfill needed (backfill is for exclusive mode apps like Claude/Codex/Gemini)
                 if !app_type.is_additive_mode() {
                     // Only backfill when switching to a different provider
                     if let Ok(live_config) = read_live_settings(app_type.clone()) {
-                        if let Some(mut current_provider) = providers.get(&current_id).cloned() {
+                        if let Some(mut current_provider) = providers.get(current_id).cloned() {
                             // 切走前先把 live 里的可共享改动（含用户直接在应用内
                             // 装插件/加 hook/改偏好）同步进通用配置片段，再做剥离回填。
                             // 详见 sync_common_config_snippet_from_live 的文档。
@@ -5114,94 +5127,25 @@ impl ProviderService {
             }
         }
 
-        let target_managed_codex_account_id = Self::managed_codex_oauth_account_id(provider);
-        let outgoing_managed_codex_account_id = current_managed_codex_account_id
-            .as_ref()
-            .filter(|account_id| target_managed_codex_account_id.as_ref() != Some(*account_id))
-            .cloned();
-        let outgoing_live_refresh_token = Self::prepare_outgoing_managed_codex_live_auth(
-            state,
-            outgoing_managed_codex_account_id.as_deref(),
-        )?;
+        // Additive mode apps skip setting is_current (no such concept)
+        if !app_type.is_additive_mode() {
+            // Update local settings (device-level, takes priority)
+            crate::settings::set_current_provider(&app_type, Some(id))?;
 
-        // 提交 current 前预检托管 Codex token（见 preflight_managed_codex_live）。
-        let preflighted_provider = Self::preflight_managed_codex_live(state, &app_type, provider)?;
-        let use_managed_codex_transaction = matches!(app_type, AppType::Codex)
-            && (current_managed_codex_account_id.is_some()
-                || target_managed_codex_account_id.is_some());
+            // Update database is_current (as default for new devices)
+            state.db.set_current_provider(app_type.as_str(), id)?;
+        }
 
-        if use_managed_codex_transaction {
-            // auth/config/catalog/marker form one logical live commit. Write them
-            // before current, then restore the exact four-file snapshot on any
-            // failure so native logins and CLI-rotated tokens are not reconstructed
-            // from a stale provider row.
-            let snapshot = crate::codex_config::CodexLiveStateSnapshot::capture()?;
-            let live_result = (|| {
-                Self::ensure_outgoing_managed_codex_live_auth_unchanged(
-                    outgoing_managed_codex_account_id.as_deref(),
-                    outgoing_live_refresh_token.as_deref(),
-                )?;
-                Self::write_preflighted_or_current_live(
-                    state,
-                    &app_type,
-                    provider,
-                    preflighted_provider.as_ref(),
-                )?;
-                Self::clear_outgoing_managed_codex_live_auth(
-                    outgoing_managed_codex_account_id.as_deref(),
-                    outgoing_live_refresh_token.as_deref(),
-                )?;
-                Ok::<(), AppError>(())
-            })();
-            if let Err(error) = live_result {
-                return Err(Self::managed_codex_transaction_error(
-                    "写入 Codex Live",
-                    error,
-                    &snapshot,
-                    None,
-                ));
-            }
+        // Sync to live (write_gemini_live handles security flag internally for Gemini)
+        write_live_with_common_config(state.db.as_ref(), &app_type, provider)?;
 
-            let previous_local_current = crate::settings::get_current_provider(&app_type);
-            if let Err(error) = crate::settings::set_current_provider(&app_type, Some(id)) {
-                return Err(Self::managed_codex_transaction_error(
-                    "更新本地 current",
-                    error,
-                    &snapshot,
-                    Some((&app_type, previous_local_current.as_deref())),
-                ));
-            }
-            if let Err(error) = state.db.set_current_provider(app_type.as_str(), id) {
-                return Err(Self::managed_codex_transaction_error(
-                    "更新数据库 current",
-                    error,
-                    &snapshot,
-                    Some((&app_type, previous_local_current.as_deref())),
-                ));
-            }
-        } else {
-            // Additive mode apps skip setting is_current (no such concept).
-            if !app_type.is_additive_mode() {
-                crate::settings::set_current_provider(&app_type, Some(id))?;
-                state.db.set_current_provider(app_type.as_str(), id)?;
-            }
-
-            // Sync to live (write_gemini_live handles security flag internally for Gemini).
-            Self::write_preflighted_or_current_live(
-                state,
-                &app_type,
-                provider,
-                preflighted_provider.as_ref(),
-            )?;
         }
 
         // A material-less official Codex provider gets a config-only live
         // write, which can leave the previous third-party key in
         // ~/.codex/auth.json and strand the user on a 401 with no login
-        // screen. Only clean up after a successful backfill — the DB copy
-        // made above is what keeps that key recoverable. Failures degrade to
-        // a log entry: config.toml and is_current are already committed, so
-        // failing the switch here would report a switch that in fact happened.
+        // screen. Only clean up after a successful backfill; the DB copy
+        // made above is what keeps that key recoverable.
         if matches!(app_type, AppType::Codex)
             && backfill_completed
             && (provider.category.as_deref() == Some("official")

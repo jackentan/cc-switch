@@ -100,12 +100,13 @@ pub async fn fetch_models_for_config(
     custom_user_agent: Option<String>,
     api_format: Option<String>,
     request_headers: Option<BTreeMap<String, String>>,
+    upstream_proxy_url: Option<String>,
 ) -> Result<Vec<FetchedModel>, String> {
     // 与转发 / 检测路径共用 parse_custom_user_agent：非法 UA 静默忽略（不阻断取模型）。
     let user_agent = crate::provider::parse_custom_user_agent(custom_user_agent.as_deref())
         .ok()
         .flatten();
-    model_fetch::fetch_models(
+    model_fetch::fetch_models_with_proxy(
         &base_url,
         &api_key,
         is_full_url.unwrap_or(false),
@@ -113,6 +114,7 @@ pub async fn fetch_models_for_config(
         user_agent,
         api_format.as_deref(),
         request_headers.as_ref(),
+        upstream_proxy_url.as_deref(),
     )
     .await
 }

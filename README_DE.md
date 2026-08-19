@@ -1,22 +1,44 @@
 <div align="center">
 
-# CC Switch
+# CC Switch (Fork)
 
 ### Der All-in-One-Manager für Claude Code, Claude Desktop, Codex, Gemini CLI, Grok Build, OpenCode, OpenClaw & Hermes Agent
 
-[![Version](https://img.shields.io/github/v/release/farion1231/cc-switch?color=blue&label=version)](https://github.com/farion1231/cc-switch/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/farion1231/cc-switch/releases)
+[![Version](https://img.shields.io/badge/version-3.19.0--fork.2-blue.svg)](https://github.com/kongkongyo/cc-switch/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/kongkongyo/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
-[![Downloads](https://img.shields.io/github/downloads/farion1231/cc-switch/total)](https://github.com/farion1231/cc-switch/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kongkongyo/cc-switch/total)](https://github.com/kongkongyo/cc-switch/releases/latest)
 
 <a href="https://trendshift.io/repositories/15372" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15372" alt="farion1231%2Fcc-switch | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 <a href="https://www.star-history.com/#farion1231/cc-switch&Date"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=farion1231/cc-switch&theme=dark" /><img alt="Star History Rank" src="https://api.star-history.com/badge?repo=farion1231/cc-switch" width="196" height="55" /></picture></a>
 
 ### 🌐 Die einzige offizielle Website: **[ccswitch.io](https://ccswitch.io)**
 
-[English](README.md) | [中文](README_ZH.md) | [日本語](README_JA.md) | Deutsch | [Changelog](CHANGELOG.md)
+[中文首页](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | Deutsch | [中文文档](README_ZH.md) | [Changelog](CHANGELOG.md)
 
 </div>
+
+Dieser Fork basiert auf [farion1231/cc-switch](https://github.com/farion1231/cc-switch) `v3.19.0` und behält die persönlichen Änderungen dieses Forks bei.
+
+**Dies ist ein persönlicher Fork mit Fokus auf praktische Nutzung.** Einige hinzugefügte oder geänderte Funktionen wurden nicht vollständig getestet, daher können **Fehler oder Inkompatibilitäten mit upstream** auftreten. Wenn Sie die sicherste Variante möchten, verwenden Sie die [offizielle Version](https://github.com/farion1231/cc-switch).
+
+## Unterschiede zum Upstream
+
+| Nutzung | Offizielle Version | Dieser Fork |
+|---------|--------------------|-------------|
+| Aktuelle Konfiguration ansehen | Provider-Karten zeigen hauptsächlich den Providernamen | Zeigt das aktuelle Modell neben dem Providernamen; Claude-Rollenmodelle werden nach Möglichkeit kurz dargestellt |
+| Modelle auswählen | Lange Modelllisten werden hauptsächlich per Scrollen durchsucht | Nach dem Abrufen der Modelle können Sie suchen, nach Provider gruppiert ansehen und das ausgewählte Modell erkennen |
+| Normales Codex-Modell | In Konfigurationen ohne lokales Routing ist das Modellfeld weniger sichtbar | Ohne lokales Routing können Sie den Modellnamen direkt eingeben oder abrufen und in die Codex-Konfiguration schreiben |
+| Anbieter-spezifischer Upstream-Proxy | Es gilt nur der globale Upstream-Proxy im bisherigen Ablauf | Ein ausgewählter Anbieter/Kanal kann einen eigenen Upstream-Proxy nutzen; nach dem Aktivieren betrifft er nur diesen Anbieter, dessen Upstream-Anfragen darüber laufen, und er hat Vorrang vor dem globalen Upstream-Proxy |
+| Neuer Provider | Wird am Ende hinzugefügt | Wird bei vorhandenen Providern an zweiter Stelle eingefügt, damit er schneller aktiviert oder sortiert werden kann |
+| Provider-Reihenfolge | Hauptsächlich per Drag-and-drop | Drag-and-drop bleibt erhalten, zusätzlich gibt es per Rechtsklick Verschieben nach oben / unten |
+| Tray-Bedienung | Linksklick öffnet eher das Tray-Menü | Linksklick auf das Tray-Symbol zeigt / versteckt das Hauptfenster |
+| Modelltest | Standard-Testprompt ist relativ einfach | Nutzt mehrere leichte Prompts und wählt pro Test zufällig einen aus; eigene Eingabe mit einem Prompt pro Zeile wird unterstützt |
+| Aktualisierung | Nutzt die automatische Update-Kette von upstream | Prüft die Releases dieses Forks, öffnet die Release-Seite und lässt den Nutzer manuell herunterladen |
+| Veröffentlichungsquelle | Releases des offiziellen Repos | Installer werden in den Releases dieses Forks veröffentlicht |
+
+> Hinweis: Ein anbieter-spezifischer Upstream-Proxy greift nur, nachdem der Traffic zuerst in den lokalen Proxy von CC Switch gelangt ist. Ist dieser Proxy falsch konfiguriert oder nicht verfügbar, schlagen die Anfragen fehl, statt still auf den globalen Upstream-Proxy zurückzufallen.
+
 
 ## ❤️Sponsoren
 
@@ -222,7 +244,7 @@ Modernes KI-gestütztes Programmieren stützt sich auf Werkzeuge wie Claude Code
 
 ## Funktionen
 
-[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.16.1-en.md)
+[Vollständiges Changelog](CHANGELOG.md) | [Release Notes](docs/release-notes/v3.19.0-en.md)
 
 ### Anbieterverwaltung
 
@@ -234,6 +256,7 @@ Modernes KI-gestütztes Programmieren stützt sich auf Werkzeuge wie Claude Code
 
 - **Lokaler Proxy mit Hot-Switching** — Formatkonvertierung, automatisches Failover, Circuit Breaker, Anbieter-Health-Monitoring und Request-Rectifier
 - **Übernahme auf App-Ebene** — Claude, Codex, Gemini oder Grok Build unabhängig über den Proxy leiten, bis hinunter auf einzelne Anbieter
+- **Anbieter-spezifischer Upstream-Proxy** — Nachdem Traffic in den lokalen Proxy gelangt, kann ein ausgewählter Anbieter seinen eigenen Upstream-Proxy nutzen; bei Fehlkonfiguration fällt er nicht still auf den globalen Proxy zurück
 
 ### MCP, Prompts & Skills
 
@@ -358,7 +381,7 @@ Ausführliche Anleitungen zu jeder Funktion finden Sie im **[Benutzerhandbuch](d
 
 ### Windows-Nutzer
 
-Laden Sie das neueste Installationsprogramm `CC-Switch-v{version}-Windows.msi` oder die portable Version `CC-Switch-v{version}-Windows-Portable.zip` von der Seite [Releases](../../releases) herunter.
+Laden Sie das neueste Installationsprogramm `CC-Switch-v{version}-Windows.msi` oder die portable Version `CC-Switch-v{version}-Windows-Portable.zip` von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter.
 
 ### macOS-Nutzer
 
@@ -376,7 +399,7 @@ brew upgrade --cask cc-switch
 
 **Methode 2: Manueller Download**
 
-Laden Sie `CC-Switch-v{version}-macOS.dmg` (empfohlen) oder `.zip` von der Seite [Releases](../../releases) herunter.
+Laden Sie `CC-Switch-v{version}-macOS.dmg` (empfohlen) oder `.zip` von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter.
 
 > **Hinweis**: CC Switch für macOS ist von Apple code-signiert und notarisiert. Sie können es direkt installieren und öffnen.
 
@@ -390,7 +413,7 @@ paru -S cc-switch-bin
 
 ### Linux-Nutzer
 
-Laden Sie den neuesten Linux-Build von der Seite [Releases](../../releases) herunter:
+Laden Sie den neuesten Linux-Build von der Seite [Releases](https://github.com/kongkongyo/cc-switch/releases) herunter:
 
 - `CC-Switch-v{version}-Linux.deb` (Debian/Ubuntu)
 - `CC-Switch-v{version}-Linux.rpm` (Fedora/RHEL/openSUSE)

@@ -10,6 +10,7 @@ use crate::store::AppState;
 use crate::usage_script;
 
 /// Execute usage script and format result (private helper method)
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn execute_and_format_usage_result(
     script_code: &str,
     api_key: &str,
@@ -18,6 +19,7 @@ pub(crate) async fn execute_and_format_usage_result(
     access_token: Option<&str>,
     user_id: Option<&str>,
     template_type: Option<&str>,
+    provider_upstream_proxy_url: Option<&str>,
 ) -> Result<UsageResult, AppError> {
     match usage_script::execute_usage_script(
         script_code,
@@ -27,6 +29,7 @@ pub(crate) async fn execute_and_format_usage_result(
         access_token,
         user_id,
         template_type,
+        provider_upstream_proxy_url,
     )
     .await
     {
@@ -128,7 +131,16 @@ pub async fn query_usage(
     app_type: AppType,
     provider_id: &str,
 ) -> Result<UsageResult, AppError> {
-    let (script_code, timeout, api_key, base_url, access_token, user_id, template_type) = {
+    let (
+        script_code,
+        timeout,
+        api_key,
+        base_url,
+        access_token,
+        user_id,
+        template_type,
+        provider_upstream_proxy_url,
+    ) = {
         let providers = state.db.get_all_providers(app_type.as_str())?;
         let provider = providers.get(provider_id).ok_or_else(|| {
             AppError::localized(
@@ -137,6 +149,15 @@ pub async fn query_usage(
                 format!("Provider not found: {provider_id}"),
             )
         })?;
+
+        let provider_upstream_proxy_url =
+            crate::proxy::http_client::provider_upstream_proxy_url(provider).map_err(|e| {
+                AppError::localized(
+                    "provider.upstream_proxy.invalid",
+                    format!("代理配置错误: {e}"),
+                    format!("Invalid proxy config: {e}"),
+                )
+            })?;
 
         let usage_script = provider
             .meta
@@ -173,6 +194,7 @@ pub async fn query_usage(
             usage_script.access_token.clone(),
             usage_script.user_id.clone(),
             usage_script.template_type.clone(),
+            provider_upstream_proxy_url,
         )
     };
 
@@ -184,6 +206,7 @@ pub async fn query_usage(
         access_token.as_deref(),
         user_id.as_deref(),
         template_type.as_deref(),
+        provider_upstream_proxy_url.as_deref(),
     )
     .await
 }
@@ -210,6 +233,14 @@ pub async fn test_usage_script(
             format!("Provider not found: {provider_id}"),
         )
     })?;
+    let provider_upstream_proxy_url =
+        crate::proxy::http_client::provider_upstream_proxy_url(provider).map_err(|e| {
+            AppError::localized(
+                "provider.upstream_proxy.invalid",
+                format!("代理配置错误: {e}"),
+                format!("Invalid proxy config: {e}"),
+            )
+        })?;
 
     // Resolve like the real query so testing matches what a saved script does:
     // explicit values win, empty ones fall back to the provider config.
@@ -223,6 +254,7 @@ pub async fn test_usage_script(
         access_token,
         user_id,
         template_type,
+        provider_upstream_proxy_url.as_deref(),
     )
     .await
 }

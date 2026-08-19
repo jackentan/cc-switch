@@ -3,6 +3,7 @@
 //! 提供支持全局代理配置的 HTTP 客户端。
 //! 所有需要发送 HTTP 请求的模块都应使用此模块提供的客户端。
 
+use crate::provider::Provider;
 use once_cell::sync::OnceCell;
 use reqwest::Client;
 use std::env;
@@ -194,6 +195,46 @@ pub fn get() -> Client {
             log::warn!("[GlobalProxy] [GP-004] Client not initialized, using fallback");
             build_client(None).unwrap_or_default()
         })
+}
+
+pub fn client_for_proxy_url(proxy_url: Option<&str>) -> Result<Client, String> {
+    let effective_url = proxy_url.filter(|s| !s.trim().is_empty());
+    build_client(effective_url)
+}
+
+pub fn provider_upstream_proxy_url(provider: &Provider) -> Result<Option<String>, String> {
+    let proxy_url = provider
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.upstream_proxy_url())
+        .map(str::to_string);
+    if let Some(url) = proxy_url.as_deref() {
+        if proxy_points_to_loopback(url) {
+            return Err(format!(
+                "Provider upstream proxy cannot point to CC Switch local proxy: {}",
+                mask_url(url)
+            ));
+        }
+        validate_proxy(Some(url))?;
+    }
+    Ok(proxy_url)
+}
+
+pub fn client_for_provider_upstream_proxy(
+    proxy_url: Option<&str>,
+) -> Result<Option<Client>, String> {
+    let Some(url) = proxy_url.map(str::trim).filter(|url| !url.is_empty()) else {
+        return Ok(None);
+    };
+
+    if proxy_points_to_loopback(url) {
+        return Err(format!(
+            "Provider upstream proxy cannot point to CC Switch local proxy: {}",
+            mask_url(url)
+        ));
+    }
+
+    client_for_proxy_url(Some(url)).map(Some)
 }
 
 /// 获取当前代理 URL

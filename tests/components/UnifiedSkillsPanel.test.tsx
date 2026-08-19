@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api/skills";
 
 const scanUnmanagedMock = vi.fn();
+const openInstalledFolderMock = vi.fn();
 const toggleSkillAppMock = vi.fn();
 const uninstallSkillMock = vi.fn();
 const importSkillsMock = vi.fn();
@@ -42,6 +43,16 @@ let bulkToggleSkillAppPending = false;
 let bulkToggleSkillAppVariables:
   | { ids: string[]; app: "claude"; enabled: boolean }
   | undefined;
+
+vi.mock("@/lib/api", () => ({
+  settingsApi: {
+    openExternal: vi.fn(),
+  },
+  skillsApi: {
+    openInstalledFolder: (id: string) => openInstalledFolderMock(id),
+    openZipFileDialog: vi.fn(),
+  },
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -171,6 +182,8 @@ describe("UnifiedSkillsPanel", () => {
         },
       ],
     });
+    openInstalledFolderMock.mockReset();
+    openInstalledFolderMock.mockResolvedValue(true);
     toggleSkillAppMock.mockReset();
     toggleSkillAppMock.mockResolvedValue(true);
     bulkToggleSkillAppMock.mockReset();
@@ -191,6 +204,42 @@ describe("UnifiedSkillsPanel", () => {
     updateSkillMock.mockImplementation(async (id: string) =>
       makeInstalledSkill({ id }),
     );
+  });
+
+  it("opens the installed skill folder from the list action", async () => {
+    installedSkillsMock = [
+      {
+        id: "skill-open",
+        name: "Open Folder Skill",
+        description: "Local skill",
+        directory: "open-folder-skill",
+        apps: {
+          claude: true,
+          codex: false,
+          gemini: false,
+          opencode: false,
+          openclaw: false,
+          hermes: false,
+        },
+        installedAt: 1,
+        updatedAt: 1,
+      },
+    ];
+
+    render(
+      <UnifiedSkillsPanel onOpenDiscovery={() => {}} currentApp="claude" />,
+    );
+
+    expect(screen.getByText("Open Folder Skill")).toBeInTheDocument();
+
+    const openFolderButton =
+      screen.queryByLabelText("打开文件夹") ??
+      screen.getByLabelText("skills.openFolder");
+    openFolderButton.click();
+
+    await waitFor(() => {
+      expect(openInstalledFolderMock).toHaveBeenCalledWith("skill-open");
+    });
   });
 
   it("opens the import dialog without crashing when app toggles render", async () => {
