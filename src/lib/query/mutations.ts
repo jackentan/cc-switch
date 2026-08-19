@@ -12,7 +12,7 @@ import {
 import { generateUUID } from "@/utils/uuid";
 import { openclawKeys } from "@/hooks/useOpenClaw";
 import { invalidateHermesProviderCaches } from "@/hooks/useHermes";
-import { proxyKeys from "@/lib/query/proxy";
+import { proxyKeys } from "@/lib/query/proxy";
 import type { ProvidersQueryData } from "@/lib/query/queries";
 import { usageKeys } from "@/lib/query/usage";
 import { invalidatePiProviderCaches } from "@/lib/query/pi";
