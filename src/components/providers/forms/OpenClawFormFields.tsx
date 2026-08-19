@@ -13,22 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Download,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {

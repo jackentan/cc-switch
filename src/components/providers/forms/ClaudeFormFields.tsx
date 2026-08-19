@@ -521,14 +521,10 @@ export function ClaudeFormFields({
     }
 
     if (isCopilotPreset && copilotModels.length > 0) {
-      // 按 vendor 分组
-      const grouped: Record<string, CopilotModel[]> = {};
-      for (const model of copilotModels) {
-        const vendor = model.vendor || "Other";
-        if (!grouped[vendor]) grouped[vendor] = [];
-        grouped[vendor].push(model);
-      }
-      const vendors = Object.keys(grouped).sort();
+      // Reuse the searchable dropdown by mapping Copilot models to FetchedModel.
+      const copilotFetchedModels: FetchedModel[] = copilotModels.map((m) => ({
+        id: m.id,
+        ownedBy: m.vendor || null,
       }));
 
       return (

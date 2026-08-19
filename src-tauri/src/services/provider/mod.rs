@@ -5127,19 +5127,87 @@ impl ProviderService {
             }
         }
 
-        // Additive mode apps skip setting is_current (no such concept)
-        if !app_type.is_additive_mode() {
-            // Update local settings (device-level, takes priority)
-            crate::settings::set_current_provider(&app_type, Some(id))?;
+        let target_managed_codex_account_id = Self::managed_codex_oauth_account_id(provider);
+        let outgoing_managed_codex_account_id = current_managed_codex_account_id
+            .as_ref()
+            .filter(|account_id| target_managed_codex_account_id.as_ref() != Some(*account_id))
+            .cloned();
+        let outgoing_live_refresh_token = Self::prepare_outgoing_managed_codex_live_auth(
+            state,
+            outgoing_managed_codex_account_id.as_deref(),
+        )?;
 
-            // Update database is_current (as default for new devices)
-            state.db.set_current_provider(app_type.as_str(), id)?;
+        // 提交 current 前预检托管 Codex token（见 preflight_managed_codex_live）。
+        let preflighted_provider = Self::preflight_managed_codex_live(state, &app_type, provider)?;
+        let use_managed_codex_transaction = matches!(app_type, AppType::Codex)
+            && (current_managed_codex_account_id.is_some()
+                || target_managed_codex_account_id.is_some());
+
+        if use_managed_codex_transaction {
+            // auth/config/catalog/marker form one logical live commit. Write them
+            // before current, then restore the exact four-file snapshot on any
+            // failure so native logins and CLI-rotated tokens are not reconstructed
+            // from a stale provider row.
+            let snapshot = crate::codex_config::CodexLiveStateSnapshot::capture()?;
+            let live_result = (|| {
+                Self::ensure_outgoing_managed_codex_live_auth_unchanged(
+                    outgoing_managed_codex_account_id.as_deref(),
+                    outgoing_live_refresh_token.as_deref(),
+                )?;
+                Self::write_preflighted_or_current_live(
+                    state,
+                    &app_type,
+                    provider,
+                    preflighted_provider.as_ref(),
+                )?;
+                Self::clear_outgoing_managed_codex_live_auth(
+                    outgoing_managed_codex_account_id.as_deref(),
+                    outgoing_live_refresh_token.as_deref(),
+                )?;
+                Ok::<(), AppError>(())
+            })();
+            if let Err(error) = live_result {
+                return Err(Self::managed_codex_transaction_error(
+                    "写入 Codex Live",
+                    error,
+                    &snapshot,
+                    None,
+                ));
+            }
+
+            let previous_local_current = crate::settings::get_current_provider(&app_type);
+            if let Err(error) = crate::settings::set_current_provider(&app_type, Some(id)) {
+                return Err(Self::managed_codex_transaction_error(
+                    "更新本地 current",
+                    error,
+                    &snapshot,
+                    Some((&app_type, previous_local_current.as_deref())),
+                ));
+            }
+            if let Err(error) = state.db.set_current_provider(app_type.as_str(), id) {
+                return Err(Self::managed_codex_transaction_error(
+                    "更新数据库 current",
+                    error,
+                    &snapshot,
+                    Some((&app_type, previous_local_current.as_deref())),
+                ));
+            }
+        } else {
+            // Additive mode apps skip setting is_current (no such concept).
+            if !app_type.is_additive_mode() {
+                crate::settings::set_current_provider(&app_type, Some(id))?;
+                state.db.set_current_provider(app_type.as_str(), id)?;
+            }
+
+            // Sync to live (write_gemini_live handles security flag internally for Gemini).
+            Self::write_preflighted_or_current_live(
+                state,
+                &app_type,
+                provider,
+                preflighted_provider.as_ref(),
+            )?;
         }
 
-        // Sync to live (write_gemini_live handles security flag internally for Gemini)
-        write_live_with_common_config(state.db.as_ref(), &app_type, provider)?;
-
-        }
 
         // A material-less official Codex provider gets a config-only live
         // write, which can leave the previous third-party key in

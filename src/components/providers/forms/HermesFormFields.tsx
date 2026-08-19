@@ -13,23 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Download,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ApiKeySection } from "./shared";
+import { Download, Plus, Trash2, ChevronRight, Loader2 } from "lucide-react";
+import { ApiKeySection, SearchableModelPicker } from "./shared";
 import {
   fetchModelsForConfig,
   showFetchModelsError,
@@ -135,26 +120,13 @@ export function HermesFormFields({
   }
   const modelKeys = modelKeysRef.current;
 
-  // Group fetched models by vendor once — Radix DropdownMenuContent doesn't
-  // lazy-mount, so computing this in JSX would re-run per model row per render.
-  const groupedFetchedModels = useMemo(
-    () =>
-      Object.entries(
-        fetchedModels.reduce(
-          (acc, m) => {
-            const v = m.ownedBy || "Other";
-            if (!acc[v]) acc[v] = [];
-            acc[v].push(m);
-            return acc;
-          },
-          {} as Record<string, FetchedModel[]>,
-        ),
-      ).sort(([a], [b]) => a.localeCompare(b)),
-    [fetchedModels],
-  );
-
-  const toggleModelAdvanced = (index: number) => {
-    setExpandedModels((prev) => ({ ...prev, [index]: !prev[index] }));
+  const toggleModelDetails = (modelKey: string) => {
+    setExpandedModelKeys((current) => {
+      const next = new Set(current);
+      if (next.has(modelKey)) next.delete(modelKey);
+      else next.add(modelKey);
+      return next;
+    });
   };
 
   const handleAddModel = () => {

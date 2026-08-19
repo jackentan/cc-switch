@@ -700,7 +700,8 @@ impl CodexOAuthManager {
 
         let refresh_lock = self.get_refresh_lock(account_id).await;
         let _guard = refresh_lock.lock().await;
-        self.resolve_valid_cached_token_under_lock(account_id).await
+        self.resolve_valid_cached_token_under_lock(account_id, provider_upstream_proxy_url)
+            .await
     }
 
     /// Resolve a token while the caller owns this account's refresh mutex.
@@ -709,6 +710,7 @@ impl CodexOAuthManager {
     async fn resolve_valid_cached_token_under_lock(
         &self,
         account_id: &str,
+        provider_upstream_proxy_url: Option<&str>,
     ) -> Result<CachedAccessToken, CodexOAuthError> {
         // Codex CLI may have advanced the shared refresh-token generation since
         // this manager last used the account. Reload it under the same per-account
@@ -904,7 +906,7 @@ impl CodexOAuthManager {
         // account generation lock. Otherwise an adoption between these reads
         // can create an invalid A0 + R1/ID1 mixed bundle.
         let cached = self
-            .resolve_valid_cached_token_under_lock(account_id)
+            .resolve_valid_cached_token_under_lock(account_id, None)
             .await?;
 
         // A managed bundle is about to overwrite auth.json. Re-read under the

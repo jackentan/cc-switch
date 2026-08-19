@@ -34,7 +34,6 @@ export async function fetchModelsForConfig(
   } else {
     options = optionsOrProxy;
   }
-): Promise<FetchedModel[]> {
   return invoke("fetch_models_for_config", {
     baseUrl,
     apiKey,
