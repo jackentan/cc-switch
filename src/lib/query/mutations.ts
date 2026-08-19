@@ -14,9 +14,28 @@ import { openclawKeys } from "@/hooks/useOpenClaw";
 import { invalidateHermesProviderCaches } from "@/hooks/useHermes";
 import type { ProvidersQueryData } from "@/lib/query/queries";
 import { proxyKeys } from "@/lib/query/proxy";
+import type { ProvidersQueryData } from "@/lib/query/queries";
 import { usageKeys } from "@/lib/query/usage";
 import { invalidatePiProviderCaches } from "@/lib/query/pi";
 import { GROKBUILD_OFFICIAL_PROVIDER_ID } from "@/utils/providerCapabilities";
+
+const sortProvidersForInsert = (
+  providers: Record<string, Provider>,
+): Provider[] =>
+  Object.values(providers).sort((a, b) => {
+    const indexA = a.sortIndex ?? Number.MAX_SAFE_INTEGER;
+    const indexB = b.sortIndex ?? Number.MAX_SAFE_INTEGER;
+    if (indexA !== indexB) {
+      return indexA - indexB;
+    }
+
+    const timeA = a.createdAt ?? 0;
+    const timeB = b.createdAt ?? 0;
+    if (timeA === timeB) {
+      return a.name.localeCompare(b.name, "zh-CN");
+    }
+    return timeA - timeB;
+  });
 
 const sortProvidersForInsert = (
   providers: Record<string, Provider>,

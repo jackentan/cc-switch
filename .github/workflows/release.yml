@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -13,20 +13,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare_matrix:
+    name: Select release platforms
+    runs-on: ubuntu-22.04
+    environment: release
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Select platforms
+        id: matrix
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          matrix=$(cat <<'JSON'
+          {"include":[
+            {"os":"windows-2022"},
+            {"os":"windows-11-arm","arch":"arm64"},
+            {"os":"ubuntu-22.04"},
+            {"os":"ubuntu-22.04-arm","arch":"arm64"}
+          ]}
+          JSON
+          )
+          if [[ -n "$APPLE_CERTIFICATE" \
+            && -n "$APPLE_CERTIFICATE_PASSWORD" \
+            && -n "$KEYCHAIN_PASSWORD" \
+            && -n "$APPLE_ID" \
+            && -n "$APPLE_PASSWORD" \
+            && -n "$APPLE_TEAM_ID" ]]; then
+            matrix=$(jq -c '.include += [{"os":"macos-14"}]' <<< "$matrix")
+            echo "macOS release enabled"
+          else
+            matrix=$(jq -c . <<< "$matrix")
+            echo "macOS release disabled: Apple signing/notarization Secrets are incomplete"
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   release:
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     environment: release
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: windows-2022
-          - os: windows-11-arm
-            arch: arm64
-          - os: ubuntu-22.04
-          - os: ubuntu-22.04-arm
-            arch: arm64
-          - os: macos-14
+      matrix: ${{ fromJSON(needs.prepare_matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -35,7 +70,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -122,6 +157,9 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
+      - name: Set release version from tag
+        run: node scripts/set-version.mjs "${{ github.ref_name }}"
+
       - name: Prepare Tauri signing key
         shell: bash
         run: |
@@ -131,7 +169,7 @@ jobs:
             echo "请检查 GitHub 仓库 Settings > Secrets and variables > Actions" >&2
             exit 1
           fi
-          
+
           RAW="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
           # 目标：提供正确的私钥“文件路径”给 Tauri CLI，避免内容解码歧义
           KEY_PATH="$RUNNER_TEMP/tauri_signing.key"
@@ -601,7 +639,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: CC Switch ${{ github.ref_name }}
-          prerelease: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             ## CC Switch ${{ github.ref_name }}
 
@@ -611,7 +649,7 @@ jobs:
 
             ### 下载
 
-            - **macOS**: `CC-Switch-${{ github.ref_name }}-macOS.dmg`（推荐）或 `CC-Switch-${{ github.ref_name }}-macOS.zip`（解压即用）
+            - **macOS（配置 Apple Secrets 后）**: `CC-Switch-${{ github.ref_name }}-macOS.dmg`（推荐）或 `CC-Switch-${{ github.ref_name }}-macOS.zip`（解压即用）
             - **Windows (x86_64)**: `CC-Switch-${{ github.ref_name }}-Windows.msi`（安装版）或 `CC-Switch-${{ github.ref_name }}-Windows-Portable.zip`（绿色版）
             - **Windows (ARM64)**: `CC-Switch-${{ github.ref_name }}-Windows-arm64.msi`（安装版）或 `CC-Switch-${{ github.ref_name }}-Windows-arm64-Portable.zip`（绿色版）
             - **Linux (x86_64)**: `CC-Switch-${{ github.ref_name }}-Linux-x86_64.AppImage` / `.deb` / `.rpm`
@@ -620,7 +658,7 @@ jobs:
             > `.tar.gz` 为 Tauri updater 自动更新专用，无需手动下载。
 
             ---
-            macOS 版本已通过 Apple 代码签名和公证，可直接安装使用。
+            macOS 版本仅在配置 Apple 代码签名和公证 Secrets 后构建。
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
