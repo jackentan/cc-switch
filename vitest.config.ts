@@ -11,6 +11,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // 本机并行跑 131 个测试文件时部分重交互用例超过 5s 默认超时，放宽到 15s
+    testTimeout: 15_000,
     setupFiles: ["./tests/setupGlobals.ts", "./tests/setupTests.ts"],
     globals: true,
     coverage: {

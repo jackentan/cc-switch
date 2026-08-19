@@ -162,7 +162,8 @@ describe("useAddProviderMutation", () => {
       }),
     );
 
-    expect(apiMocks.getAll).not.toHaveBeenCalled();
+    // fork 增强：新增无 sortIndex 供应商前会先读取现有列表以插入第二位
+    expect(apiMocks.getAll).toHaveBeenCalledWith("codex");
     expect(apiMocks.add).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "generated-uuid",
@@ -218,7 +219,8 @@ describe("useAddProviderMutation", () => {
       }),
     );
 
-    expect(apiMocks.getAll).not.toHaveBeenCalled();
+    // fork 增强：每次新增前读取现有列表以计算插入位置
+    expect(apiMocks.getAll).toHaveBeenCalledTimes(2);
     expect(apiMocks.add).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
