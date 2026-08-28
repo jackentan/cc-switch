@@ -758,7 +758,7 @@ dependencies = [
 
 [[package]]
 name = "cc-switch"
-version = "3.20.0-Jack"
+version = "3.20.1-Jack"
 dependencies = [
  "anyhow",
  "arboard",

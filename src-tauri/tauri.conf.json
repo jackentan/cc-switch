@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "CC Switch",
-  "version": "3.20.0-Jack",
+  "version": "3.20.1-Jack",
   "identifier": "com.ccswitch.desktop",
   "build": {
     "frontendDist": "../dist",
