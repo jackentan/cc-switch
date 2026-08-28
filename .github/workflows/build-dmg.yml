@@ -1,0 +1,163 @@
+name: Build DMG (Jack Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如 3.20.2-Jack，留空则沿用当前版本)'
+        required: false
+        default: ''
+        type: string
+      merge_upstream:
+        description: '构建前合并哪些上游更新'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - farion1231
+          - kongkongyo
+          - both
+      publish_release:
+        description: '构建后发布到 GitHub Releases'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-dmg
+  cancel-in-progress: true
+
+jobs:
+  build-dmg:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream (optional)
+        if: inputs.merge_upstream != 'none'
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          merge_one() {
+            local name="$1" url="$2"
+            git remote add "$name" "$url" 2>/dev/null || true
+            git fetch --no-tags "$name" main
+            if ! git merge --no-ff --no-edit "$name/main"; then
+              echo "Merge conflicts detected; auto-resolving version files with ours..."
+              for f in package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json; do
+                git checkout --ours -- "$f" 2>/dev/null || true
+                git add "$f" 2>/dev/null || true
+              done
+              if git diff --name-only --diff-filter=U | grep -q .; then
+                echo "::error::仍有冲突文件需要手动解决，请先本地合并后推送再构建："
+                git diff --name-only --diff-filter=U
+                exit 1
+              fi
+              git commit --no-edit
+            fi
+          }
+
+          case "${{ inputs.merge_upstream }}" in
+            farion1231)
+              merge_one farion https://github.com/farion1231/cc-switch.git
+              ;;
+            kongkongyo)
+              merge_one kongkong https://github.com/kongkongyo/cc-switch.git
+              ;;
+            both)
+              merge_one farion https://github.com/farion1231/cc-switch.git
+              merge_one kongkong https://github.com/kongkongyo/cc-switch.git
+              ;;
+          esac
+
+          # 合并上游后确保 updater 更新源仍指向 jackentan/cc-switch
+          node scripts/prepare-jackentan-release.mjs
+
+      - name: Set version (optional)
+        if: inputs.version != ''
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+          node scripts/set-version.mjs "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Read final version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.3
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: macos-arm64-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: macos-arm64-pnpm-store-
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build DMG
+        run: pnpm tauri build --bundles dmg
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc-switch-dmg
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+
+      - name: Publish Release
+        if: inputs.publish_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: CC Switch v${{ steps.version.outputs.version }}
+          body: |
+            ## CC Switch ${{ steps.version.outputs.version }}
+
+            由 GitHub Actions 云端构建（手动触发 / 合并上游可选）。
+            合并上游: `${{ inputs.merge_upstream }}`
+
+            - 上游主程序: farion1231/cc-switch
+            - Fork 增强: kongkongyo/cc-switch
+          files: src-tauri/target/release/bundle/dmg/*.dmg
+          allow_updates: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
